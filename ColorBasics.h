@@ -64,6 +64,8 @@ private:
     DWORD                   m_nFramesSinceUpdate;
     bool                    m_bSaveScreenshot;
 
+	UINT16*					m_depthBuffer;
+
     // Current Kinect
     IKinectSensor*          m_pKinectSensor;
 	ICoordinateMapper*		m_pCoordinateMapper;
@@ -84,10 +86,10 @@ private:
     /// </summary>
     void                    Update();
 	void				    UpdateColor();
-	void					UpdateDepth(UINT16 **buffer, UINT* capacity, int* width, int* height, DepthSpacePoint dsp);
+	void					UpdateDepth(UINT* capacity, int* width, int* height, DepthSpacePoint dsp);
 	void					UpdateBody(DepthSpacePoint *dsp);
-	void					Trianglez(UINT16* depthBuffer, UINT capacity, int width, int height, DepthSpacePoint dsp);
-	UINT16					getValue(UINT16 *buffer, int y, int x, int width);
+	void					Trianglez(UINT capacity, int width, int height, DepthSpacePoint dsp);
+	UINT16					getValue(int y, int x, int width);
 
 	void Output(const char* szFormat, ...);
 

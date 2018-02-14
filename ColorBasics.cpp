@@ -58,16 +58,16 @@ void DisjointSet::do_union(int a, int b)
 	}
 }
 
-UINT16 CColorBasics::getValue(UINT16 *buffer, int y, int x, int width)
+UINT16 CColorBasics::getValue(int y, int x, int width)
 {
-	return buffer[(y * width) + x];
+	return m_depthBuffer[(y * width) + x];
 }
 
-#define grid(y, x) getValue(buffer, y, x, width)
-void CColorBasics::Trianglez(UINT16 *buffer, UINT nCapacity, int width, int height, DepthSpacePoint dsp)
+#define grid(y, x) getValue(y, x, width)
+void CColorBasics::Trianglez(UINT nCapacity, int width, int height, DepthSpacePoint dsp)
 {
 	DisjointSet ds(height * width);
-	short threshold = 130;
+	short threshold = 25;
 
     for (int i = 1; i < width; i++) {
         if (abs(grid(0, i) - grid(0, i-1)) < threshold) {
@@ -92,7 +92,7 @@ void CColorBasics::Trianglez(UINT16 *buffer, UINT nCapacity, int width, int heig
         }
     }
 
-	int personComponent = ds.find(width * (height / 3) + (width / 2));
+	int personComponent = ds.find(width * (dsp.Y) + (dsp.X));
 	Output("personComponent: %d\n", personComponent);
 
 	UINT16 *resultBuffer = new UINT16[nCapacity];
@@ -260,6 +260,8 @@ int CColorBasics::Run(HINSTANCE hInstance, int nCmdShow)
     // Show window
     ShowWindow(hWndApp, nCmdShow);
 
+	m_depthBuffer = new UINT16[cDepthHeight * cDepthWidth];
+
     // Main message loop
     while (WM_QUIT != msg.message)
     {
@@ -298,8 +300,13 @@ void CColorBasics::Update()
 	if (m_bSaveScreenshot)
 	{
 		UpdateBody(&dsp);
-		UpdateDepth(&depthBuffer, &capacity, &width, &height, dsp);
-		//Trianglez(depthBuffer, capacity, width, height);
+		UpdateDepth(&capacity, &width, &height, dsp);
+		Trianglez(capacity, width, height, dsp);
+
+		WCHAR szStatusMessage[64 + MAX_PATH];
+		StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Saved files", NULL);
+
+		SetStatusMessage(szStatusMessage, 5000, true);
 
 		// toggle off so we don't save a screenshot again next frame
 		m_bSaveScreenshot = false;
@@ -378,7 +385,7 @@ void CColorBasics::UpdateColor()
     SafeRelease(pColorFrame);
 }
 
-void CColorBasics::UpdateDepth(UINT16** pBuffer, UINT* capacity, int* width, int* height, DepthSpacePoint dsp)
+void CColorBasics::UpdateDepth(UINT* capacity, int* width, int* height, DepthSpacePoint dsp)
 {
     if (!m_pDepthFrameReader)
     {
@@ -442,8 +449,15 @@ void CColorBasics::UpdateDepth(UINT16** pBuffer, UINT* capacity, int* width, int
 
         if (SUCCEEDED(hr))
         {
-            hr = pDepthFrame->AccessUnderlyingBuffer(&nBufferSize, pBuffer);            
+			UINT16* underlyingBuffer = NULL;
+            hr = pDepthFrame->AccessUnderlyingBuffer(&nBufferSize, &underlyingBuffer);            
 			*capacity = nBufferSize;
+
+			for (int i = 0; i < nBufferSize; i++) {
+				UINT16 value = underlyingBuffer[i];
+				value = (UINT16)((value >= nDepthMinReliableDistance && value <= nDepthMaxDistance) ? value : 0);
+				m_depthBuffer[i] = value;
+			}
         }
 
         if (SUCCEEDED(hr))
@@ -461,35 +475,11 @@ void CColorBasics::UpdateDepth(UINT16** pBuffer, UINT* capacity, int* width, int
 
 			// nBufferSize contains length of array rather than SIZE of array in bytes
 			for (int i = 0; i < nBufferSize; i++) {
-				UINT16 value = (*pBuffer)[i];
-				value = (UINT16)((value >= nDepthMinReliableDistance && value <= nDepthMaxDistance) ? value : 0);
-				myfile.write((char *)(&value), sizeof(value));
+				myfile.write((char *) &m_depthBuffer[i], sizeof(UINT16));
 			}
 
 			myfile.close();
 
-			Output("nDepthMinReliableDistance: %d", nDepthMinReliableDistance);
-			Output("nDepthMaxDistance: %d", nDepthMaxDistance);
-			UINT16* sadbuffer = new UINT16[nBufferSize];
-			for (int i = 0; i < nBufferSize; i++) {
-				UINT16 value = (*pBuffer)[i];
-				value = (UINT16)((value >= nDepthMinReliableDistance && value <= nDepthMaxDistance) ? value : 0);
-				sadbuffer[i] = value;
-			}
-			Trianglez(sadbuffer, nBufferSize, nWidth, nHeight, dsp);
-
-			WCHAR szStatusMessage[64 + MAX_PATH];
-			if (SUCCEEDED(hr))
-			{
-				// Set the status bar to show where the screenshot was saved
-				StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Screenshot saved to %s", filepath);
-			}
-			else
-			{
-				StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Failed to write screenshot to %s", filepath);
-			}
-
-			SetStatusMessage(szStatusMessage, 5000, true);
 
 			// DONT DEAD OPEN INSIDE
 			// ProcessDepth(nTime, pBuffer, nWidth, nHeight, nDepthMinReliableDistance, nDepthMaxDistance);
