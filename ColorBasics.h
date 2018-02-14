@@ -6,8 +6,46 @@
 
 #pragma once
 
+//#include <opencv2/core.hpp>
+//#include <opencv2/imgcodecs.hpp>
+//#include <opencv2/highgui.hpp>
+#include <opencv2/opencv.hpp>
+
 #include "resource.h"
 #include "ImageRenderer.h"
+
+using namespace std;
+using namespace cv;
+
+struct skeletalBodyPoints_t {
+	int neck_y;
+	int neck_x;
+	int leftShoulder_y;
+	int leftShoulder_x;
+	int rightShoulder_y;
+	int rightShoulder_x;
+	int leftHip_y;
+	int leftHip_x;
+	int rightHip_y;
+	int rightHip_x;
+	int leftElbow_y;
+	int leftElbow_x;
+	int rightElbow_y;
+	int rightElbow_x;
+};
+
+struct tracePoints_t {
+	Point leftNeck;
+	Point rightNeck;
+	Point leftShoulder;
+	Point rightShoulder;
+	Point leftOuterHem;
+	Point leftInnerHem;
+	Point rightOuterHem;
+	Point rightInnerHem;
+	Point leftHip;
+	Point rightHip;
+};
 
 class CColorBasics
 {
@@ -65,6 +103,10 @@ private:
     bool                    m_bSaveScreenshot;
 
 	UINT16*					m_depthBuffer;
+	Joint					m_joints[JointType_Count];
+	
+	skeletalBodyPoints_t	m_skeletalPoints;
+	tracePoints_t			m_tracePoints;
 
     // Current Kinect
     IKinectSensor*          m_pKinectSensor;
@@ -88,9 +130,10 @@ private:
 	void				    UpdateColor();
 	void					UpdateDepth(UINT* capacity, int* width, int* height, DepthSpacePoint dsp);
 	void					UpdateBody(DepthSpacePoint *dsp);
-	void					Trianglez(UINT capacity, int width, int height, DepthSpacePoint dsp);
+	void					Trianglez(UINT capacity, int width, int height, DepthSpacePoint dsp, short threshold);
 	void					KevinsCode();
 	UINT16					getValue(int y, int x, int width);
+	DepthSpacePoint			JointToDepthSpacePoint(JointType jointType);
 
 	void Output(const char* szFormat, ...);
 

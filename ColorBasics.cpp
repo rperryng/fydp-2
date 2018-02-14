@@ -4,24 +4,19 @@
 // </copyright>
 //------------------------------------------------------------------------------
 
+#include "ColorBasics.h"
+
 #include "stdafx.h"
 #include <strsafe.h>
 #include <iostream>
 #include <fstream>
 #include <ctime>
-#include "resource.h"
-#include "ColorBasics.h"
+//#include "resource.h"
 #include <vector>
 #include <unordered_map>
 
-#include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/opencv.hpp>
 #include <iostream>
 
-using namespace std;
-using namespace cv;
 
 class DisjointSet {
 public:
@@ -77,10 +72,9 @@ UINT16 CColorBasics::getValue(int y, int x, int width)
 }
 
 #define grid(y, x) getValue(y, x, width)
-void CColorBasics::Trianglez(UINT nCapacity, int width, int height, DepthSpacePoint dsp)
+void CColorBasics::Trianglez(UINT nCapacity, int width, int height, DepthSpacePoint dsp, short threshold)
 {
 	DisjointSet ds(height * width);
-	short threshold = 25;
 
     for (int i = 1; i < width; i++) {
         if (abs(grid(0, i) - grid(0, i-1)) < threshold) {
@@ -105,17 +99,14 @@ void CColorBasics::Trianglez(UINT nCapacity, int width, int height, DepthSpacePo
         }
     }
 
-	int personComponent = ds.find(width * (dsp.Y) + (dsp.X));
+	int personComponent = ds.find(width * ((int) (dsp.Y)) + (int) (dsp.X));
 	Output("personComponent: %d\n", personComponent);
-
-	UINT16 *resultBuffer = new UINT16[nCapacity];
-	unsigned char counter = 0;
 
 	string OUTPUT_DIRECTORY = "C:\\Users\\Ryan\\~\\code\\fydp-kinect-app\\out\\depth";
 	string FILE_EXTENSION = "-good.pgm";
 	time_t timestamp = time(nullptr);
 	char* filepath = new char[OUTPUT_DIRECTORY.length() + FILE_EXTENSION.length() + 32];
-	sprintf(filepath, "%s-%d%s", OUTPUT_DIRECTORY.c_str(), (int)timestamp, FILE_EXTENSION.c_str());
+	sprintf(filepath, "%s-%u-%d%s", OUTPUT_DIRECTORY.c_str(), (int)timestamp, threshold, FILE_EXTENSION.c_str());
 	ofstream myfile(filepath, ios::out | ios::binary);
 
 	if (myfile.is_open())
@@ -284,6 +275,7 @@ int CColorBasics::Run(HINSTANCE hInstance, int nCmdShow)
     ShowWindow(hWndApp, nCmdShow);
 
 	m_depthBuffer = new UINT16[cDepthHeight * cDepthWidth];
+	m_joints = new Joint[JointType_Count];
 
     // Main message loop
     while (WM_QUIT != msg.message)
@@ -324,7 +316,11 @@ void CColorBasics::Update()
 	{
 		UpdateBody(&dsp);
 		UpdateDepth(&capacity, &width, &height, dsp);
-		Trianglez(capacity, width, height, dsp);
+
+		Output("dsp: ", dsp.X, dsp.Y);
+
+		Trianglez(capacity, width, height, dsp, 25);
+
 		KevinsCode();
 
 		WCHAR szStatusMessage[64 + MAX_PATH];
@@ -409,151 +405,172 @@ void CColorBasics::UpdateColor()
     SafeRelease(pColorFrame);
 } 
 
+DepthSpacePoint CColorBasics::JointToDepthSpacePoint(JointType jointType) {
+	DepthSpacePoint dsp = { 0 };
+	Joint joint = m_joints[jointType];
+	m_pCoordinateMapper->MapCameraPointToDepthSpace(joint.Position, &dsp);
+	return dsp;
+}
+
 void CColorBasics::KevinsCode()
 {
 	time_t timehash = time(NULL);
 	Mat rawImage, depthFile1, depthFile2, mappingFile, cannyEdgeImage;
-	rawImage = imread("../out/persists/image.png", IMREAD_COLOR);
-	depthFile1 = imread("../out/persists/depth1.pgm", IMREAD_GRAYSCALE);
 
-	Canny(rawImage, cannyEdgeImage, 25, 50, 3, true);
+	depthFile1 = Mat(cDepthHeight, cDepthWidth, DataType<UINT16>::type, m_depthBuffer);
 
-	ifstream skeletalFile;
-	skeletalFile.open("../out/persists/body.nbm");
-	if (!skeletalFile) {
-		cerr << "Unable to open body.nbm";
-		exit(1);   // call system to stop
+	DepthSpacePoint dsp;
+
+	// Neck
+	dsp = JointToDepthSpacePoint(JointType_Neck);
+	m_skeletalPoints.neck_x = (int) dsp.X;
+	m_skeletalPoints.neck_y = (int) dsp.Y;
+	Mat leftNeckRoi = depthFile1(
+		Range(m_skeletalPoints.neck_y, m_skeletalPoints.neck_y + 1),
+		Range(m_skeletalPoints.neck_x - 100, m_skeletalPoints.neck_x)
+	);
+	Point maxX;
+	minMaxLoc(leftNeckRoi, NULL, NULL, NULL, &maxX);
+	m_tracePoints.leftNeck = Point(m_skeletalPoints.neck_x - 100 + maxX.x, m_skeletalPoints.neck_y);
+	// circle(rawImage, Point(x - 100 + leftX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+
+	Mat rightNeckRoi = depthFile1(
+		Range(m_skeletalPoints.neck_y, m_skeletalPoints.neck_y + 1),
+		Range(m_skeletalPoints.neck_x, m_skeletalPoints.neck_x + 100)
+	);
+	Point minX;
+	minMaxLoc(rightNeckRoi, NULL, NULL, &minX, NULL);
+	m_tracePoints.rightNeck = Point(m_skeletalPoints.neck_x + minX.x, m_skeletalPoints.neck_y);
+	circle(rawImage, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+
+
+	// Shoulder Left
+	dsp = JointToDepthSpacePoint(JointType_ShoulderLeft);
+	m_skeletalPoints.leftShoulder_x = (int) dsp.X;
+	m_skeletalPoints.leftShoulder_y = (int) dsp.Y;
+	//rectangle(rawImage, Point(x, y), Point(x - 50, y - 50), Scalar(255, 0, 0), 2);
+	Mat leftShoulderRoi = depthFile1(
+		Range(m_skeletalPoints.leftShoulder_y - 50, m_skeletalPoints.leftShoulder_y),
+		Range(m_skeletalPoints.leftShoulder_x - 50, m_skeletalPoints.leftShoulder_x)
+);
+	int diagonalArr[50];
+	// construct diagonal array
+	for (int i = 0; i < 50; i++) {
+		Scalar intensity = leftShoulderRoi.at<uchar>(i, i);
+		diagonalArr[i] = intensity.val[0];
 	}
+	Mat diagonalRoi = Mat(1, 50, DataType<int>::type, &diagonalArr);
+	Point maxPoint;
+	minMaxLoc(diagonalRoi, NULL, NULL, NULL, &maxPoint);
+	//circle(rawImage, Point(x - 50 + maxPoint.x, y - 50 + maxPoint.x), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+	m_tracePoints.leftShoulder = Point(
+		m_skeletalPoints.leftShoulder_x - 50 + maxPoint.x,
+		m_skeletalPoints.leftShoulder_y - 50 + maxPoint.x
+	);
 
-	string line;
-	string delimiter = ",";
-
-	Point leftShoulder;
-	Point leftElbow;
-	Point rightShoulder;
-	Point rightElbow;
-
-	while (getline(skeletalFile, line))
-	{
-
-		int x, y;
-		string jointName;
-		size_t pos;
-
-		pos = line.find(delimiter);
-		jointName = line.substr(0, pos);
-		line.erase(0, pos + delimiter.length());
-
-		pos = line.find(delimiter);
-		x = stoi(line.substr(0, pos));
-		line.erase(0, pos + delimiter.length());
-
-		y = stoi(line);
-
-		circle(rawImage, Point(x, y), 10, Scalar(255, 0, 255), FILLED, LINE_8);
-
-		switch (convertStringToJoint(jointName)) {
-		case NECK: {
-			Mat leftNeckRoi = cannyEdgeImage(Range(y, y + 1), Range(x - 100, x));
-			Point leftX;
-			minMaxLoc(leftNeckRoi, NULL, NULL, NULL, &leftX);
-			circle(rawImage, Point(x - 100 + leftX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
-
-			Mat rightNeckRoi = cannyEdgeImage(Range(y, y + 1), Range(x, x + 100));
-			flip(rightNeckRoi, rightNeckRoi, 1);
-			Point rightX;
-			minMaxLoc(rightNeckRoi, NULL, NULL, NULL, &rightX);
-			circle(rawImage, Point(x + 100 - rightX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
-
-			break;
-		}
-
-		case SHOULDER_LEFT: {
-			rectangle(rawImage, Point(x, y), Point(x - 50, y - 50), Scalar(255, 0, 0), 2);
-			Mat leftShoulderRoi = cannyEdgeImage(Range(y - 50, y), Range(x - 50, x));
-			int diagonalArr[50];
-			// construct diagonal array
-			for (int i = 0; i < 50; i++) {
-				Scalar intensity = leftShoulderRoi.at<uchar>(i, i);
-				diagonalArr[i] = intensity.val[0];
-			}
-			Mat diagonalRoi = Mat(1, 50, DataType<int>::type, &diagonalArr);
-			Point maxPoint;
-			minMaxLoc(diagonalRoi, NULL, NULL, NULL, &maxPoint);
-			circle(rawImage, Point(x - 50 + maxPoint.x, y - 50 + maxPoint.x), 5, Scalar(0, 0, 255), FILLED, LINE_8);
-
-			leftShoulder = Point(x, y);
-			break;
-		}
-		case SHOULDER_RIGHT: {
-			rectangle(rawImage, Point(x, y), Point(x + 50, y - 50), Scalar(255, 0, 0), 2);
-			Mat rightShoulderRoi = cannyEdgeImage(Range(y - 50, y), Range(x, x + 50));
-			int diagonalArr[50];
-			// construct diagonal array
-			for (int i = 0; i < 50; i++) {
-				Scalar intensity = rightShoulderRoi.at<uchar>(i, 50 - i);
-				diagonalArr[i] = intensity.val[0];
-			}
-			Mat diagonalRoi = Mat(1, 50, DataType<int>::type, &diagonalArr);
-			Point maxPoint;
-			minMaxLoc(diagonalRoi, NULL, NULL, NULL, &maxPoint);
-			circle(rawImage, Point(x + 50 - maxPoint.x, y - 50 + maxPoint.x), 5, Scalar(0, 0, 255), FILLED, LINE_8);
-
-			rightShoulder = Point(x, y);
-			break;
-		}
-		case HIP_LEFT: {
-			Mat leftHipRoi = cannyEdgeImage(Range(y, y + 1), Range(x - 125, x - 50));
-			Point leftX;
-			minMaxLoc(leftHipRoi, NULL, NULL, NULL, &leftX);
-			circle(rawImage, Point(x - 125 + leftX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
-			break;
-		}
-		case HIP_RIGHT: {
-			Mat rightHipRoi = cannyEdgeImage(Range(y, y + 1), Range(x + 50, x + 125));
-			Point rightX;
-			minMaxLoc(rightHipRoi, NULL, NULL, NULL, &rightX);
-			circle(rawImage, Point(x + 50 + rightX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
-			break;
-		}
-		case ELBOW_LEFT: {
-			leftElbow = Point(x, y);
-			break;
-		}
-		case ELBOW_RIGHT: {
-			rightElbow = Point(x, y);
-			break;
-		}
-		case INVALID_JOINT: {
-			break;
-		}
-
-		}
+	// Right Shoulder
+	dsp = JointToDepthSpacePoint(JointType_ShoulderRight);
+	m_skeletalPoints.rightShoulder_x = (int) dsp.X;
+	m_skeletalPoints.rightShoulder_y = (int) dsp.Y;
+	//rectangle(rawImage, Point(x, y), Point(x + 50, y - 50), Scalar(255, 0, 0), 2);
+	Mat rightShoulderRoi = depthFile1(
+		Range(m_skeletalPoints.rightShoulder_y - 50, m_skeletalPoints.rightShoulder_y),
+		Range(m_skeletalPoints.rightShoulder_x, m_skeletalPoints.rightShoulder_x + 50)
+	);
+	int diagonalArr[50];
+	// construct diagonal array
+	for (int i = 0; i < 50; i++) {
+		Scalar intensity = rightShoulderRoi.at<uchar>(i, 50 - i);
+		diagonalArr[i] = intensity.val[0];
 	}
-	skeletalFile.close();
+	Mat diagonalRoi = Mat(1, 50, DataType<int>::type, &diagonalArr);
+	Point maxPoint;
+	minMaxLoc(diagonalRoi, NULL, NULL, NULL, &maxPoint);
+	// circle(rawImage, Point(x + 50 - maxPoint.x, y - 50 + maxPoint.x), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+	m_tracePoints.rightShoulder = Point(
+		m_skeletalPoints.rightShoulder_x + 50 - maxPoint.x,
+		m_skeletalPoints.rightShoulder_y - 50 + maxPoint.x
+	);
+
+	// Left Hip
+	dsp = JointToDepthSpacePoint(JointType_HipLeft);
+	m_skeletalPoints.leftHip_x = (int) dsp.X;
+	m_skeletalPoints.leftHip_y = (int) dsp.Y;
+	Mat leftHipRoi = depthFile1(
+		Range(m_skeletalPoints.leftHip_y, m_skeletalPoints.leftHip_y + 1),
+		Range(m_skeletalPoints.leftHip_x - 150, m_skeletalPoints.leftHip_x - 50)
+	);
+	Point maxX;
+	minMaxLoc(leftHipRoi, NULL, NULL, NULL, &maxX);
+	m_tracePoints.leftHip = Point(
+		m_skeletalPoints.leftHip_x - 150 + maxX.x,
+		m_skeletalPoints.leftHip_y
+	);
+	// circle(rawImage, Point(x - 125 + leftX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+
+
+	// Right Hip
+	dsp = JointToDepthSpacePoint(JointType_HipLeft);
+	m_skeletalPoints.rightHip_x = (int) dsp.X;
+	m_skeletalPoints.rightHip_y = (int) dsp.Y;
+	Mat rightHipRoi = depthFile1(
+		Range(m_skeletalPoints.rightHip_y, m_skeletalPoints.rightHip_y + 1),
+		Range(m_skeletalPoints.rightHip_x + 50, m_skeletalPoints.rightHip_x + 150)
+	);
+	Point minX;
+	minMaxLoc(rightHipRoi, NULL, NULL, &minX, NULL);
+	m_tracePoints.rightHip = Point(
+		m_skeletalPoints.rightHip_x + 50 + minX.x,
+		m_skeletalPoints.rightHip_y
+	);
+	//circle(rawImage, Point(x + 50 + rightX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+
+	dsp = JointToDepthSpacePoint(JointType_ElbowLeft);
+	m_skeletalPoints.leftElbow_x = (int) dsp.X;
+	m_skeletalPoints.leftElbow_y = (int) dsp.Y;
+
+	dsp = JointToDepthSpacePoint(JointType_ElbowRight);
+	m_skeletalPoints.rightElbow_x = (int) dsp.X;
+	m_skeletalPoints.rightElbow_y = (int) dsp.Y;
 
 	// Left Hem
-	Point leftBicep = Point((leftShoulder.x + leftElbow.x) / 2, (leftShoulder.y + leftElbow.y) / 2);
-	Mat leftHemRoi = cannyEdgeImage(Range(leftBicep.y, leftBicep.y + 1), Range(leftBicep.x - 100, leftBicep.x));
-	Point leftX;
-	minMaxLoc(leftHemRoi, NULL, NULL, NULL, &leftX);
+	Point leftBicep = Point(
+		(m_skeletalPoints.leftElbow_x + m_skeletalPoints.leftShoulder_x) / 2,
+		(m_skeletalPoints.leftElbow_y + m_skeletalPoints.leftShoulder_y) / 2
+	);
+	Mat leftHemRoi = depthFile1(
+		Range(leftBicep.y, leftBicep.y + 1),
+		Range(leftBicep.x - 100, leftBicep.x)
+	);
+	Point maxPoint;
+	minMaxLoc(leftHemRoi, NULL, NULL, NULL, &maxPoint);
+	m_tracePoints.leftOuterHem = Point(leftBicep.x - 100 + maxPoint.x, leftBicep.y);
+	m_tracePoints.leftInnerHem = Point(leftBicep.x + 100 - maxPoint.x, leftBicep.y);
 	// Left Outer Hem
-	circle(rawImage, Point(leftBicep.x - 100 + leftX.x, leftBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+	// circle(rawImage, Point(leftBicep.x - 100 + leftX.x, leftBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
 	// Left Inner Hem
-	circle(rawImage, Point(leftBicep.x + 100 - leftX.x, leftBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+	// circle(rawImage, Point(leftBicep.x + 100 - leftX.x, leftBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
 
 	// Right Hem
-	Point rightBicep = Point((rightShoulder.x + rightElbow.x) / 2, (rightShoulder.y + rightElbow.y) / 2);
-	Mat rightHemRoi = cannyEdgeImage(Range(rightBicep.y, rightBicep.y + 1), Range(rightBicep.x, rightBicep.x + 100));
+	Point rightBicep = Point(
+		(m_skeletalPoints.rightElbow_x + m_skeletalPoints.rightShoulder_x) / 2,
+		(m_skeletalPoints.rightElbow_y + m_skeletalPoints.rightShoulder_y) / 2
+	);
+	Mat rightHemRoi = depthFile1(
+		Range(rightBicep.y, rightBicep.y + 1),
+		Range(rightBicep.x , rightBicep.x + 100)
+	);
+	Point minPoint;
+	minMaxLoc(rightHemRoi, NULL, NULL, &minPoint, NULL);
+	m_tracePoints.rightOuterHem = Point(rightBicep.x + minPoint.x, rightBicep.y);
+	m_tracePoints.rightInnerHem = Point(rightBicep.x - minPoint.x, rightBicep.y);
+
+	Mat rightHemRoi = depthFile1(Range(rightBicep.y, rightBicep.y + 1), Range(rightBicep.x, rightBicep.x + 100));
 	Point rightX;
 	minMaxLoc(rightHemRoi, NULL, NULL, NULL, &rightX);
-	// Right Outer Hem
-	circle(rawImage, Point(rightBicep.x + rightX.x, rightBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
-	// Right Inner Hem
-	circle(rawImage, Point(rightBicep.x - rightX.x, rightBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
 
-	resize(cannyEdgeImage, cannyEdgeImage, Size(), 0.5, 0.5, INTER_AREA);
-	resize(rawImage, rawImage, Size(), 0.5, 0.5, INTER_AREA);
+	// resize(cannyEdgeImage, cannyEdgeImage, Size(), 0.5, 0.5, INTER_AREA);
+	// resize(rawImage, rawImage, Size(), 0.5, 0.5, INTER_AREA);
 
 	namedWindow("Canny Edge", WINDOW_AUTOSIZE);
 	imshow("Canny Edge", cannyEdgeImage );
@@ -716,6 +733,10 @@ void CColorBasics::UpdateBody(DepthSpacePoint *dsp)
 				{
 					for (int j = 0; j < _countof(joints); ++j)
 					{
+						Joint joint = joints[i];
+
+						m_joints[i] = joints[j];
+
 						if (j == 0) {
 							m_pCoordinateMapper->MapCameraPointToDepthSpace(joints[j].Position, dsp);
 						}
