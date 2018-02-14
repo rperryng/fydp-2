@@ -17,9 +17,11 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/opencv.hpp>
 #include <iostream>
 
 using namespace std;
+using namespace cv;
 
 class DisjointSet {
 public:
@@ -57,6 +59,17 @@ void DisjointSet::do_union(int a, int b)
 		if (rank_[fa] == rank_[fb]) rank_[fa]++;
 	}
 }
+
+enum joint {
+	NECK,
+	SHOULDER_LEFT,
+	SHOULDER_RIGHT,
+	HIP_LEFT,
+	HIP_RIGHT,
+	ELBOW_LEFT,
+	ELBOW_RIGHT,
+	INVALID_JOINT
+};
 
 UINT16 CColorBasics::getValue(int y, int x, int width)
 {
@@ -128,6 +141,16 @@ void CColorBasics::Trianglez(UINT nCapacity, int width, int height, DepthSpacePo
 	}
 }
 
+joint convertStringToJoint(string jointName) {
+	if (jointName == "Neck") return NECK;
+	if (jointName == "ShoulderLeft") return SHOULDER_LEFT;
+	if (jointName == "ShoulderRight") return SHOULDER_RIGHT;
+	if (jointName == "HipLeft") return HIP_LEFT;
+	if (jointName == "HipRight") return HIP_RIGHT;
+	if (jointName == "ElbowLeft") return ELBOW_LEFT;
+	if (jointName == "ElbowRight") return ELBOW_RIGHT;
+	return INVALID_JOINT;
+}
 
 void CColorBasics::Output(const char* szFormat, ...)
 {
@@ -302,6 +325,7 @@ void CColorBasics::Update()
 		UpdateBody(&dsp);
 		UpdateDepth(&capacity, &width, &height, dsp);
 		Trianglez(capacity, width, height, dsp);
+		KevinsCode();
 
 		WCHAR szStatusMessage[64 + MAX_PATH];
 		StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Saved files", NULL);
@@ -383,6 +407,159 @@ void CColorBasics::UpdateColor()
     }
 
     SafeRelease(pColorFrame);
+} 
+
+void CColorBasics::KevinsCode()
+{
+	time_t timehash = time(NULL);
+	Mat rawImage, depthFile1, depthFile2, mappingFile, cannyEdgeImage;
+	rawImage = imread("../out/persists/image.png", IMREAD_COLOR);
+	depthFile1 = imread("../out/persists/depth1.pgm", IMREAD_GRAYSCALE);
+
+	Canny(rawImage, cannyEdgeImage, 25, 50, 3, true);
+
+	ifstream skeletalFile;
+	skeletalFile.open("../out/persists/body.nbm");
+	if (!skeletalFile) {
+		cerr << "Unable to open body.nbm";
+		exit(1);   // call system to stop
+	}
+
+	string line;
+	string delimiter = ",";
+
+	Point leftShoulder;
+	Point leftElbow;
+	Point rightShoulder;
+	Point rightElbow;
+
+	while (getline(skeletalFile, line))
+	{
+
+		int x, y;
+		string jointName;
+		size_t pos;
+
+		pos = line.find(delimiter);
+		jointName = line.substr(0, pos);
+		line.erase(0, pos + delimiter.length());
+
+		pos = line.find(delimiter);
+		x = stoi(line.substr(0, pos));
+		line.erase(0, pos + delimiter.length());
+
+		y = stoi(line);
+
+		circle(rawImage, Point(x, y), 10, Scalar(255, 0, 255), FILLED, LINE_8);
+
+		switch (convertStringToJoint(jointName)) {
+		case NECK: {
+			Mat leftNeckRoi = cannyEdgeImage(Range(y, y + 1), Range(x - 100, x));
+			Point leftX;
+			minMaxLoc(leftNeckRoi, NULL, NULL, NULL, &leftX);
+			circle(rawImage, Point(x - 100 + leftX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+
+			Mat rightNeckRoi = cannyEdgeImage(Range(y, y + 1), Range(x, x + 100));
+			flip(rightNeckRoi, rightNeckRoi, 1);
+			Point rightX;
+			minMaxLoc(rightNeckRoi, NULL, NULL, NULL, &rightX);
+			circle(rawImage, Point(x + 100 - rightX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+
+			break;
+		}
+
+		case SHOULDER_LEFT: {
+			rectangle(rawImage, Point(x, y), Point(x - 50, y - 50), Scalar(255, 0, 0), 2);
+			Mat leftShoulderRoi = cannyEdgeImage(Range(y - 50, y), Range(x - 50, x));
+			int diagonalArr[50];
+			// construct diagonal array
+			for (int i = 0; i < 50; i++) {
+				Scalar intensity = leftShoulderRoi.at<uchar>(i, i);
+				diagonalArr[i] = intensity.val[0];
+			}
+			Mat diagonalRoi = Mat(1, 50, DataType<int>::type, &diagonalArr);
+			Point maxPoint;
+			minMaxLoc(diagonalRoi, NULL, NULL, NULL, &maxPoint);
+			circle(rawImage, Point(x - 50 + maxPoint.x, y - 50 + maxPoint.x), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+
+			leftShoulder = Point(x, y);
+			break;
+		}
+		case SHOULDER_RIGHT: {
+			rectangle(rawImage, Point(x, y), Point(x + 50, y - 50), Scalar(255, 0, 0), 2);
+			Mat rightShoulderRoi = cannyEdgeImage(Range(y - 50, y), Range(x, x + 50));
+			int diagonalArr[50];
+			// construct diagonal array
+			for (int i = 0; i < 50; i++) {
+				Scalar intensity = rightShoulderRoi.at<uchar>(i, 50 - i);
+				diagonalArr[i] = intensity.val[0];
+			}
+			Mat diagonalRoi = Mat(1, 50, DataType<int>::type, &diagonalArr);
+			Point maxPoint;
+			minMaxLoc(diagonalRoi, NULL, NULL, NULL, &maxPoint);
+			circle(rawImage, Point(x + 50 - maxPoint.x, y - 50 + maxPoint.x), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+
+			rightShoulder = Point(x, y);
+			break;
+		}
+		case HIP_LEFT: {
+			Mat leftHipRoi = cannyEdgeImage(Range(y, y + 1), Range(x - 125, x - 50));
+			Point leftX;
+			minMaxLoc(leftHipRoi, NULL, NULL, NULL, &leftX);
+			circle(rawImage, Point(x - 125 + leftX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+			break;
+		}
+		case HIP_RIGHT: {
+			Mat rightHipRoi = cannyEdgeImage(Range(y, y + 1), Range(x + 50, x + 125));
+			Point rightX;
+			minMaxLoc(rightHipRoi, NULL, NULL, NULL, &rightX);
+			circle(rawImage, Point(x + 50 + rightX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+			break;
+		}
+		case ELBOW_LEFT: {
+			leftElbow = Point(x, y);
+			break;
+		}
+		case ELBOW_RIGHT: {
+			rightElbow = Point(x, y);
+			break;
+		}
+		case INVALID_JOINT: {
+			break;
+		}
+
+		}
+	}
+	skeletalFile.close();
+
+	// Left Hem
+	Point leftBicep = Point((leftShoulder.x + leftElbow.x) / 2, (leftShoulder.y + leftElbow.y) / 2);
+	Mat leftHemRoi = cannyEdgeImage(Range(leftBicep.y, leftBicep.y + 1), Range(leftBicep.x - 100, leftBicep.x));
+	Point leftX;
+	minMaxLoc(leftHemRoi, NULL, NULL, NULL, &leftX);
+	// Left Outer Hem
+	circle(rawImage, Point(leftBicep.x - 100 + leftX.x, leftBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+	// Left Inner Hem
+	circle(rawImage, Point(leftBicep.x + 100 - leftX.x, leftBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+
+	// Right Hem
+	Point rightBicep = Point((rightShoulder.x + rightElbow.x) / 2, (rightShoulder.y + rightElbow.y) / 2);
+	Mat rightHemRoi = cannyEdgeImage(Range(rightBicep.y, rightBicep.y + 1), Range(rightBicep.x, rightBicep.x + 100));
+	Point rightX;
+	minMaxLoc(rightHemRoi, NULL, NULL, NULL, &rightX);
+	// Right Outer Hem
+	circle(rawImage, Point(rightBicep.x + rightX.x, rightBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+	// Right Inner Hem
+	circle(rawImage, Point(rightBicep.x - rightX.x, rightBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+
+	resize(cannyEdgeImage, cannyEdgeImage, Size(), 0.5, 0.5, INTER_AREA);
+	resize(rawImage, rawImage, Size(), 0.5, 0.5, INTER_AREA);
+
+	namedWindow("Canny Edge", WINDOW_AUTOSIZE);
+	imshow("Canny Edge", cannyEdgeImage );
+		namedWindow("Raw Image", WINDOW_AUTOSIZE);
+	imshow("Raw Image", rawImage);
+	waitKey(0);
 }
 
 void CColorBasics::UpdateDepth(UINT* capacity, int* width, int* height, DepthSpacePoint dsp)

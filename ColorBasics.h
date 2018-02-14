@@ -89,6 +89,7 @@ private:
 	void					UpdateDepth(UINT* capacity, int* width, int* height, DepthSpacePoint dsp);
 	void					UpdateBody(DepthSpacePoint *dsp);
 	void					Trianglez(UINT capacity, int width, int height, DepthSpacePoint dsp);
+	void					KevinsCode();
 	UINT16					getValue(int y, int x, int width);
 
 	void Output(const char* szFormat, ...);
