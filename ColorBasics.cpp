@@ -17,6 +17,7 @@
 
 #include <iostream>
 
+using namespace std;
 
 class DisjointSet {
 public:
@@ -54,17 +55,6 @@ void DisjointSet::do_union(int a, int b)
 		if (rank_[fa] == rank_[fb]) rank_[fa]++;
 	}
 }
-
-enum joint {
-	NECK,
-	SHOULDER_LEFT,
-	SHOULDER_RIGHT,
-	HIP_LEFT,
-	HIP_RIGHT,
-	ELBOW_LEFT,
-	ELBOW_RIGHT,
-	INVALID_JOINT
-};
 
 UINT16 CColorBasics::getValue(int y, int x, int width)
 {
@@ -120,27 +110,18 @@ void CColorBasics::Trianglez(UINT nCapacity, int width, int height, DepthSpacePo
 				int num = ds.find(width * i + j);
 				if (num == personComponent) {
 					myfile << "11";
+					m_depthBuffer[i * width + j] = USHRT_MAX;
 				}
 				else {
 					char zero = 0;
 					myfile << zero << zero;
+					m_depthBuffer[i * width + j] = 0;
 				}
 			}
 		}
 
 		myfile.close();
 	}
-}
-
-joint convertStringToJoint(string jointName) {
-	if (jointName == "Neck") return NECK;
-	if (jointName == "ShoulderLeft") return SHOULDER_LEFT;
-	if (jointName == "ShoulderRight") return SHOULDER_RIGHT;
-	if (jointName == "HipLeft") return HIP_LEFT;
-	if (jointName == "HipRight") return HIP_RIGHT;
-	if (jointName == "ElbowLeft") return ELBOW_LEFT;
-	if (jointName == "ElbowRight") return ELBOW_RIGHT;
-	return INVALID_JOINT;
 }
 
 void CColorBasics::Output(const char* szFormat, ...)
@@ -152,6 +133,7 @@ void CColorBasics::Output(const char* szFormat, ...)
 	va_end(arg);
 
 	OutputDebugStringA(szBuff);
+	OutputDebugStringA("\n");
 }
 
 /// <summary>
@@ -275,7 +257,6 @@ int CColorBasics::Run(HINSTANCE hInstance, int nCmdShow)
     ShowWindow(hWndApp, nCmdShow);
 
 	m_depthBuffer = new UINT16[cDepthHeight * cDepthWidth];
-	m_joints = new Joint[JointType_Count];
 
     // Main message loop
     while (WM_QUIT != msg.message)
@@ -316,10 +297,9 @@ void CColorBasics::Update()
 	{
 		UpdateBody(&dsp);
 		UpdateDepth(&capacity, &width, &height, dsp);
-
-		Output("dsp: ", dsp.X, dsp.Y);
-
 		Trianglez(capacity, width, height, dsp, 25);
+
+		Output("Trianglez done\n");
 
 		KevinsCode();
 
@@ -415,16 +395,22 @@ DepthSpacePoint CColorBasics::JointToDepthSpacePoint(JointType jointType) {
 void CColorBasics::KevinsCode()
 {
 	time_t timehash = time(NULL);
-	Mat rawImage, depthFile1, depthFile2, mappingFile, cannyEdgeImage;
+	Mat matDepth;
 
-	depthFile1 = Mat(cDepthHeight, cDepthWidth, DataType<UINT16>::type, m_depthBuffer);
+	// depthFile1 = Mat(cDepthHeight, cDepthWidth, DataType<UINT16>::type, m_depthBuffer, sizeof(UINT16) * cDepthWidth);
+	matDepth = Mat(cDepthHeight, cDepthWidth, CV_16UC3, m_depthBuffer, sizeof(UINT16) * cDepthWidth);
+	matDepth *= 10;
 
 	DepthSpacePoint dsp;
+	Point maxPoint;
+	Point minPoint;
+	int diagonalArr[50];
+	Mat diagonalRoi = Mat(1, 50, DataType<int>::type, &diagonalArr);
 
 	// Neck
 	dsp = JointToDepthSpacePoint(JointType_Neck);
-	m_skeletalPoints.neck_x = (int) dsp.X;
-	m_skeletalPoints.neck_y = (int) dsp.Y;
+	m_skeletalPoints.neck_x = static_cast<int>(dsp.X);
+	m_skeletalPoints.neck_y = static_cast<int>(dsp.Y);
 	Mat leftNeckRoi = depthFile1(
 		Range(m_skeletalPoints.neck_y, m_skeletalPoints.neck_y + 1),
 		Range(m_skeletalPoints.neck_x - 100, m_skeletalPoints.neck_x)
@@ -432,7 +418,7 @@ void CColorBasics::KevinsCode()
 	Point maxX;
 	minMaxLoc(leftNeckRoi, NULL, NULL, NULL, &maxX);
 	m_tracePoints.leftNeck = Point(m_skeletalPoints.neck_x - 100 + maxX.x, m_skeletalPoints.neck_y);
-	// circle(rawImage, Point(x - 100 + leftX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y), 5, Scalar(0,0, 255), FILLED, LINE_8);
 
 	Mat rightNeckRoi = depthFile1(
 		Range(m_skeletalPoints.neck_y, m_skeletalPoints.neck_y + 1),
@@ -441,7 +427,7 @@ void CColorBasics::KevinsCode()
 	Point minX;
 	minMaxLoc(rightNeckRoi, NULL, NULL, &minX, NULL);
 	m_tracePoints.rightNeck = Point(m_skeletalPoints.neck_x + minX.x, m_skeletalPoints.neck_y);
-	circle(rawImage, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, Scalar(127), FILLED, LINE_8);
 
 
 	// Shoulder Left
@@ -452,21 +438,19 @@ void CColorBasics::KevinsCode()
 	Mat leftShoulderRoi = depthFile1(
 		Range(m_skeletalPoints.leftShoulder_y - 50, m_skeletalPoints.leftShoulder_y),
 		Range(m_skeletalPoints.leftShoulder_x - 50, m_skeletalPoints.leftShoulder_x)
-);
-	int diagonalArr[50];
+	);
 	// construct diagonal array
 	for (int i = 0; i < 50; i++) {
-		Scalar intensity = leftShoulderRoi.at<uchar>(i, i);
+		Scalar intensity = leftShoulderRoi.at<UINT16>(i, i);
 		diagonalArr[i] = intensity.val[0];
 	}
-	Mat diagonalRoi = Mat(1, 50, DataType<int>::type, &diagonalArr);
-	Point maxPoint;
 	minMaxLoc(diagonalRoi, NULL, NULL, NULL, &maxPoint);
 	//circle(rawImage, Point(x - 50 + maxPoint.x, y - 50 + maxPoint.x), 5, Scalar(0, 0, 255), FILLED, LINE_8);
 	m_tracePoints.leftShoulder = Point(
 		m_skeletalPoints.leftShoulder_x - 50 + maxPoint.x,
 		m_skeletalPoints.leftShoulder_y - 50 + maxPoint.x
 	);
+	circle(matDepth, Point(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y), 5, Scalar(127), FILLED, LINE_8);
 
 	// Right Shoulder
 	dsp = JointToDepthSpacePoint(JointType_ShoulderRight);
@@ -477,20 +461,19 @@ void CColorBasics::KevinsCode()
 		Range(m_skeletalPoints.rightShoulder_y - 50, m_skeletalPoints.rightShoulder_y),
 		Range(m_skeletalPoints.rightShoulder_x, m_skeletalPoints.rightShoulder_x + 50)
 	);
-	int diagonalArr[50];
+
 	// construct diagonal array
 	for (int i = 0; i < 50; i++) {
-		Scalar intensity = rightShoulderRoi.at<uchar>(i, 50 - i);
+		Scalar intensity = rightShoulderRoi.at<UINT16>(i, 49 - i);
 		diagonalArr[i] = intensity.val[0];
 	}
-	Mat diagonalRoi = Mat(1, 50, DataType<int>::type, &diagonalArr);
-	Point maxPoint;
 	minMaxLoc(diagonalRoi, NULL, NULL, NULL, &maxPoint);
 	// circle(rawImage, Point(x + 50 - maxPoint.x, y - 50 + maxPoint.x), 5, Scalar(0, 0, 255), FILLED, LINE_8);
 	m_tracePoints.rightShoulder = Point(
 		m_skeletalPoints.rightShoulder_x + 50 - maxPoint.x,
 		m_skeletalPoints.rightShoulder_y - 50 + maxPoint.x
 	);
+	circle(matDepth, Point(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y), 5, Scalar(127), FILLED, LINE_8);
 
 	// Left Hip
 	dsp = JointToDepthSpacePoint(JointType_HipLeft);
@@ -500,13 +483,12 @@ void CColorBasics::KevinsCode()
 		Range(m_skeletalPoints.leftHip_y, m_skeletalPoints.leftHip_y + 1),
 		Range(m_skeletalPoints.leftHip_x - 150, m_skeletalPoints.leftHip_x - 50)
 	);
-	Point maxX;
-	minMaxLoc(leftHipRoi, NULL, NULL, NULL, &maxX);
+	minMaxLoc(leftHipRoi, NULL, NULL, NULL, &maxPoint);
 	m_tracePoints.leftHip = Point(
-		m_skeletalPoints.leftHip_x - 150 + maxX.x,
+		m_skeletalPoints.leftHip_x - 150 + maxPoint.x,
 		m_skeletalPoints.leftHip_y
 	);
-	// circle(rawImage, Point(x - 125 + leftX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, Scalar(127), FILLED, LINE_8);
 
 
 	// Right Hip
@@ -517,13 +499,12 @@ void CColorBasics::KevinsCode()
 		Range(m_skeletalPoints.rightHip_y, m_skeletalPoints.rightHip_y + 1),
 		Range(m_skeletalPoints.rightHip_x + 50, m_skeletalPoints.rightHip_x + 150)
 	);
-	Point minX;
-	minMaxLoc(rightHipRoi, NULL, NULL, &minX, NULL);
+	minMaxLoc(rightHipRoi, NULL, NULL, &minPoint, NULL);
 	m_tracePoints.rightHip = Point(
-		m_skeletalPoints.rightHip_x + 50 + minX.x,
+		m_skeletalPoints.rightHip_x + 50 + minPoint.x,
 		m_skeletalPoints.rightHip_y
 	);
-	//circle(rawImage, Point(x + 50 + rightX.x, y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, Scalar(127), FILLED, LINE_8);
 
 	dsp = JointToDepthSpacePoint(JointType_ElbowLeft);
 	m_skeletalPoints.leftElbow_x = (int) dsp.X;
@@ -542,10 +523,11 @@ void CColorBasics::KevinsCode()
 		Range(leftBicep.y, leftBicep.y + 1),
 		Range(leftBicep.x - 100, leftBicep.x)
 	);
-	Point maxPoint;
 	minMaxLoc(leftHemRoi, NULL, NULL, NULL, &maxPoint);
 	m_tracePoints.leftOuterHem = Point(leftBicep.x - 100 + maxPoint.x, leftBicep.y);
 	m_tracePoints.leftInnerHem = Point(leftBicep.x + 100 - maxPoint.x, leftBicep.y);
+	circle(matDepth, Point(m_tracePoints.leftOuterHem.x, m_tracePoints.leftOuterHem.y), 5, Scalar(127), FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftInnerHem.x, m_tracePoints.leftInnerHem.y), 5, Scalar(127), FILLED, LINE_8);
 	// Left Outer Hem
 	// circle(rawImage, Point(leftBicep.x - 100 + leftX.x, leftBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
 	// Left Inner Hem
@@ -560,22 +542,17 @@ void CColorBasics::KevinsCode()
 		Range(rightBicep.y, rightBicep.y + 1),
 		Range(rightBicep.x , rightBicep.x + 100)
 	);
-	Point minPoint;
 	minMaxLoc(rightHemRoi, NULL, NULL, &minPoint, NULL);
 	m_tracePoints.rightOuterHem = Point(rightBicep.x + minPoint.x, rightBicep.y);
 	m_tracePoints.rightInnerHem = Point(rightBicep.x - minPoint.x, rightBicep.y);
-
-	Mat rightHemRoi = depthFile1(Range(rightBicep.y, rightBicep.y + 1), Range(rightBicep.x, rightBicep.x + 100));
-	Point rightX;
-	minMaxLoc(rightHemRoi, NULL, NULL, NULL, &rightX);
+	circle(matDepth, Point(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y), 5, Scalar(127), FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y), 5, Scalar(127), FILLED, LINE_8);
 
 	// resize(cannyEdgeImage, cannyEdgeImage, Size(), 0.5, 0.5, INTER_AREA);
 	// resize(rawImage, rawImage, Size(), 0.5, 0.5, INTER_AREA);
 
-	namedWindow("Canny Edge", WINDOW_AUTOSIZE);
-	imshow("Canny Edge", cannyEdgeImage );
-		namedWindow("Raw Image", WINDOW_AUTOSIZE);
-	imshow("Raw Image", rawImage);
+	namedWindow("DepthFile", WINDOW_AUTOSIZE);
+	imshow("DepthFile", matDepth);
 	waitKey(0);
 }
 
@@ -733,9 +710,8 @@ void CColorBasics::UpdateBody(DepthSpacePoint *dsp)
 				{
 					for (int j = 0; j < _countof(joints); ++j)
 					{
-						Joint joint = joints[i];
-
-						m_joints[i] = joints[j];
+						Joint joint = joints[j];
+						m_joints[j] = joints[j];
 
 						if (j == 0) {
 							m_pCoordinateMapper->MapCameraPointToDepthSpace(joints[j].Position, dsp);

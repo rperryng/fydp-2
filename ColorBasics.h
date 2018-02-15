@@ -13,8 +13,8 @@
 
 #include "resource.h"
 #include "ImageRenderer.h"
+#include "Kinect.h"
 
-using namespace std;
 using namespace cv;
 
 struct skeletalBodyPoints_t {
@@ -104,10 +104,10 @@ private:
 
 	UINT16*					m_depthBuffer;
 	Joint					m_joints[JointType_Count];
-	
+
 	skeletalBodyPoints_t	m_skeletalPoints;
 	tracePoints_t			m_tracePoints;
-
+	
     // Current Kinect
     IKinectSensor*          m_pKinectSensor;
 	ICoordinateMapper*		m_pCoordinateMapper;
