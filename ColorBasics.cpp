@@ -17,6 +17,9 @@
 
 #include <iostream>
 
+#define RED Scalar(0, 0, USHRT_MAX)
+#define BLUE Scalar(USHRT_MAX, 0, 0)
+
 using namespace std;
 
 class DisjointSet {
@@ -56,40 +59,39 @@ void DisjointSet::do_union(int a, int b)
 	}
 }
 
-UINT16 CColorBasics::getValue(int y, int x, int width)
+UINT16 CColorBasics::dGrid(int y, int x)
 {
-	return m_depthBuffer[(y * width) + x];
+	return m_depthBuffer[(y * cDepthWidth) + x];
 }
 
-#define grid(y, x) getValue(y, x, width)
-void CColorBasics::Trianglez(UINT nCapacity, int width, int height, DepthSpacePoint dsp, short threshold)
+void CColorBasics::Trianglez(DepthSpacePoint dsp, short threshold)
 {
-	DisjointSet ds(height * width);
+	DisjointSet ds(cDepthHeight * cDepthWidth);
 
-    for (int i = 1; i < width; i++) {
-        if (abs(grid(0, i) - grid(0, i-1)) < threshold) {
+    for (int i = 1; i < cDepthWidth; i++) {
+        if (abs(dGrid(0, i) - dGrid(0, i-1)) < threshold) {
             ds.do_union(i, i-1);
         }
     }
-    
-    for (int i = 1; i < height; i++) {
-        if (abs(grid(i, 0) - grid(i-1, 0)) < threshold) {
-            ds.do_union(i*width, (i-1)*width);
+
+    for (int i = 1; i < cDepthHeight; i++) {
+        if (abs(dGrid(i, 0) - dGrid(i-1, 0)) < threshold) {
+            ds.do_union(i*cDepthWidth, (i-1)*cDepthWidth);
         }
     }
     
-    for (int i = 1; i < height; i++) {
-        for (int j = 1; j < width; j++) {
-			if (abs(grid(i, j) - grid(i-1, j)) < threshold) {
-                ds.do_union(i*width + j, (i-1)*width+j);
+	for (int i = 1; i < cDepthHeight; i++) {
+        for (int j = 1; j < cDepthWidth; j++) {
+			if (abs(dGrid(i, j) - dGrid(i-1, j)) < threshold) {
+                ds.do_union(i*cDepthWidth + j, (i-1)*cDepthWidth+j);
             }
-            if (abs(grid(i, j-1) - grid(i, j)) < threshold) {
-                ds.do_union(i*width + j, i*width+j-1);
+            if (abs(dGrid(i, j-1) - dGrid(i, j)) < threshold) {
+                ds.do_union(i*cDepthWidth + j, i*cDepthWidth+j-1);
             }
         }
     }
 
-	int personComponent = ds.find(width * ((int) (dsp.Y)) + (int) (dsp.X));
+	int personComponent = ds.find(cDepthWidth * ((int) (dsp.Y)) + (int) (dsp.X));
 	Output("personComponent: %d\n", personComponent);
 
 	string OUTPUT_DIRECTORY = "C:\\Users\\Ryan\\~\\code\\fydp-kinect-app\\out\\depth";
@@ -102,20 +104,20 @@ void CColorBasics::Trianglez(UINT nCapacity, int width, int height, DepthSpacePo
 	if (myfile.is_open())
 	{
 		char* header = new char[200];
-		sprintf(header, "P5 %d %d %d\n", width, height, 4500);
+		sprintf(header, "P5 %d %d %d\n", cDepthWidth, cDepthHeight, 4500);
 
 		myfile << header;
-		for (int i = 0; i < height; i++) {
-			for (int j = 0; j < width; j++) {
-				int num = ds.find(width * i + j);
+		for (int i = 0; i < cDepthHeight; i++) {
+			for (int j = 0; j < cDepthWidth; j++) {
+				int num = ds.find(cDepthWidth * i + j);
 				if (num == personComponent) {
 					myfile << "11";
-					m_depthBuffer[i * width + j] = USHRT_MAX;
+					m_depthBuffer[i * cDepthWidth + j] = USHRT_MAX;
 				}
 				else {
 					char zero = 0;
 					myfile << zero << zero;
-					m_depthBuffer[i * width + j] = 0;
+					m_depthBuffer[i * cDepthWidth + j] = 0;
 				}
 			}
 		}
@@ -257,6 +259,7 @@ int CColorBasics::Run(HINSTANCE hInstance, int nCmdShow)
     ShowWindow(hWndApp, nCmdShow);
 
 	m_depthBuffer = new UINT16[cDepthHeight * cDepthWidth];
+	m_colorBuffer = new RGBQUAD[cColorHeight * cColorWidth];
 
     // Main message loop
     while (WM_QUIT != msg.message)
@@ -279,6 +282,38 @@ int CColorBasics::Run(HINSTANCE hInstance, int nCmdShow)
     return static_cast<int>(msg.wParam);
 }
 
+void CColorBasics::LoadBinaryData() {
+	FILE *file;
+
+	file = fopen("C:\\Users\\Ryan\\~\\code\\fydp-2\\bin_dumps\\color.dump", "rb");
+	fread(m_colorBuffer, sizeof(RGBQUAD), cColorWidth * cColorHeight, file);
+	fclose(file);
+
+	file = fopen("C:\\Users\\Ryan\\~\\code\\fydp-2\\bin_dumps\\depth.dump", "rb");
+	fread(m_depthBuffer, sizeof(USHORT), cDepthWidth * cDepthHeight, file);
+	fclose(file);
+
+	file = fopen("C:\\Users\\Ryan\\~\\code\\fydp-2\\bin_dumps\\bonez.dump", "rb");
+	fread(m_joints, sizeof(Joint), JointType_Count, file);
+	fclose(file);
+}
+
+void CColorBasics::StoreBinaryData() {
+	FILE *file;
+
+	file = fopen("C:\\Users\\Ryan\\~\\code\\fydp-2\\bin_dumps\\color.dump", "wb");
+	fwrite(m_colorBuffer, sizeof(RGBQUAD), cColorWidth * cColorHeight, file);
+	fclose(file);
+
+	file = fopen("C:\\Users\\Ryan\\~\\code\\fydp-2\\bin_dumps\\depth.dump", "wb");
+	fwrite(m_depthBuffer, sizeof(USHORT), cDepthWidth * cDepthHeight, file);
+	fclose(file);
+
+	file = fopen("C:\\Users\\Ryan\\~\\code\\fydp-2\\bin_dumps\\bonez.dump", "wb");
+	fwrite(m_joints, sizeof(Joint), JointType_Count, file);
+	fclose(file);
+}
+
 /// <summary>
 /// Main processing function
 /// </summary>
@@ -293,14 +328,17 @@ void CColorBasics::Update()
 
 	DepthSpacePoint dsp = {0};
 
-	if (m_bSaveScreenshot)
+	if (m_bSaveScreenshot || !m_ranOnceAlready)
+	//if (m_bSaveScreenshot)
 	{
-		UpdateBody(&dsp);
-		UpdateDepth(&capacity, &width, &height, dsp);
-		Trianglez(capacity, width, height, dsp, 25);
+		//UpdateBody(&dsp);
+		//UpdateDepth(&capacity, &width, &height, dsp);
 
-		Output("Trianglez done\n");
+		LoadBinaryData();
+		//StoreBinaryData();
+		m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[0].Position, &dsp);
 
+		Trianglez(dsp, 25);
 		KevinsCode();
 
 		WCHAR szStatusMessage[64 + MAX_PATH];
@@ -310,6 +348,7 @@ void CColorBasics::Update()
 
 		// toggle off so we don't save a screenshot again next frame
 		m_bSaveScreenshot = false;
+		m_ranOnceAlready = true;
 	}
 }
 
@@ -366,7 +405,8 @@ void CColorBasics::UpdateColor()
             {
                 pBuffer = m_pColorRGBX;
                 nBufferSize = cColorWidth * cColorHeight * sizeof(RGBQUAD);
-                hr = pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(pBuffer), ColorImageFormat_Bgra);            
+                //hr = pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(pBuffer), ColorImageFormat_Bgra);            
+                pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(m_colorBuffer), ColorImageFormat_Bgra);            
             }
             else
             {
@@ -376,7 +416,7 @@ void CColorBasics::UpdateColor()
 
         if (SUCCEEDED(hr))
         {
-            ProcessColor(nTime, pBuffer, nWidth, nHeight);
+            ProcessColor(nTime, m_colorBuffer, nWidth, nHeight);
         }
 
         SafeRelease(pFrameDescription);
@@ -392,50 +432,65 @@ DepthSpacePoint CColorBasics::JointToDepthSpacePoint(JointType jointType) {
 	return dsp;
 }
 
+ColorSpacePoint CColorBasics::DepthSpaceToColorSpace(int x, int y) {
+	DepthSpacePoint dsp = { 0 };
+	ColorSpacePoint csp = { 0 };
+	dsp.X = (float) x;
+	dsp.Y = (float) y;
+	m_pCoordinateMapper->MapDepthPointToColorSpace(dsp, USHRT_MAX, &csp);
+	return csp;
+}
+
 void CColorBasics::KevinsCode()
 {
 	time_t timehash = time(NULL);
-	Mat matDepth;
+	Mat matDepth, matDepthRaw, matDepthColor;
 
-	// depthFile1 = Mat(cDepthHeight, cDepthWidth, DataType<UINT16>::type, m_depthBuffer, sizeof(UINT16) * cDepthWidth);
-	matDepth = Mat(cDepthHeight, cDepthWidth, CV_16UC3, m_depthBuffer, sizeof(UINT16) * cDepthWidth);
-	matDepth *= 10;
-
+	ColorSpacePoint csp;
 	DepthSpacePoint dsp;
 	Point maxPoint;
 	Point minPoint;
 	int diagonalArr[50];
 	Mat diagonalRoi = Mat(1, 50, DataType<int>::type, &diagonalArr);
 
+	// depthFile1 = Mat(cDepthHeight, cDepthWidth, DataType<UINT16>::type, m_depthBuffer, sizeof(UINT16) * cDepthWidth);
+	matDepthRaw = Mat(cDepthHeight, cDepthWidth, CV_16UC1, m_depthBuffer, sizeof(UINT16) * cDepthWidth);
+	cvtColor(matDepthRaw, matDepth, COLOR_GRAY2BGR);
+
+	matDepthColor = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer, sizeof(RGBQUAD) * cColorWidth);
+
 	// Neck
 	dsp = JointToDepthSpacePoint(JointType_Neck);
-	m_skeletalPoints.neck_x = static_cast<int>(dsp.X);
-	m_skeletalPoints.neck_y = static_cast<int>(dsp.Y);
-	Mat leftNeckRoi = depthFile1(
+	m_skeletalPoints.neck_x = (int) dsp.X;
+	m_skeletalPoints.neck_y = (int) dsp.Y;
+	Mat leftNeckRoi = matDepthRaw(
 		Range(m_skeletalPoints.neck_y, m_skeletalPoints.neck_y + 1),
 		Range(m_skeletalPoints.neck_x - 100, m_skeletalPoints.neck_x)
 	);
 	Point maxX;
 	minMaxLoc(leftNeckRoi, NULL, NULL, NULL, &maxX);
 	m_tracePoints.leftNeck = Point(m_skeletalPoints.neck_x - 100 + maxX.x, m_skeletalPoints.neck_y);
-	circle(matDepth, Point(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y), 5, Scalar(0,0, 255), FILLED, LINE_8);
+	csp = DepthSpaceToColorSpace(m_tracePoints.leftNeck.x + 1, m_tracePoints.leftNeck.y + 1);
+	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y), 5, BLUE, FILLED, LINE_8);
 
-	Mat rightNeckRoi = depthFile1(
+	Mat rightNeckRoi = matDepthRaw(
 		Range(m_skeletalPoints.neck_y, m_skeletalPoints.neck_y + 1),
 		Range(m_skeletalPoints.neck_x, m_skeletalPoints.neck_x + 100)
 	);
 	Point minX;
 	minMaxLoc(rightNeckRoi, NULL, NULL, &minX, NULL);
 	m_tracePoints.rightNeck = Point(m_skeletalPoints.neck_x + minX.x, m_skeletalPoints.neck_y);
-	circle(matDepth, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, Scalar(127), FILLED, LINE_8);
-
+	csp = DepthSpaceToColorSpace(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y);
+	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, BLUE, FILLED, LINE_8);
 
 	// Shoulder Left
 	dsp = JointToDepthSpacePoint(JointType_ShoulderLeft);
 	m_skeletalPoints.leftShoulder_x = (int) dsp.X;
 	m_skeletalPoints.leftShoulder_y = (int) dsp.Y;
 	//rectangle(rawImage, Point(x, y), Point(x - 50, y - 50), Scalar(255, 0, 0), 2);
-	Mat leftShoulderRoi = depthFile1(
+	Mat leftShoulderRoi = matDepthRaw(
 		Range(m_skeletalPoints.leftShoulder_y - 50, m_skeletalPoints.leftShoulder_y),
 		Range(m_skeletalPoints.leftShoulder_x - 50, m_skeletalPoints.leftShoulder_x)
 	);
@@ -450,14 +505,16 @@ void CColorBasics::KevinsCode()
 		m_skeletalPoints.leftShoulder_x - 50 + maxPoint.x,
 		m_skeletalPoints.leftShoulder_y - 50 + maxPoint.x
 	);
-	circle(matDepth, Point(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y), 5, Scalar(127), FILLED, LINE_8);
+	csp = DepthSpaceToColorSpace(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y);
+	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y), 5, BLUE, FILLED, LINE_8);
 
 	// Right Shoulder
 	dsp = JointToDepthSpacePoint(JointType_ShoulderRight);
 	m_skeletalPoints.rightShoulder_x = (int) dsp.X;
 	m_skeletalPoints.rightShoulder_y = (int) dsp.Y;
 	//rectangle(rawImage, Point(x, y), Point(x + 50, y - 50), Scalar(255, 0, 0), 2);
-	Mat rightShoulderRoi = depthFile1(
+	Mat rightShoulderRoi = matDepthRaw(
 		Range(m_skeletalPoints.rightShoulder_y - 50, m_skeletalPoints.rightShoulder_y),
 		Range(m_skeletalPoints.rightShoulder_x, m_skeletalPoints.rightShoulder_x + 50)
 	);
@@ -468,43 +525,41 @@ void CColorBasics::KevinsCode()
 		diagonalArr[i] = intensity.val[0];
 	}
 	minMaxLoc(diagonalRoi, NULL, NULL, NULL, &maxPoint);
-	// circle(rawImage, Point(x + 50 - maxPoint.x, y - 50 + maxPoint.x), 5, Scalar(0, 0, 255), FILLED, LINE_8);
 	m_tracePoints.rightShoulder = Point(
 		m_skeletalPoints.rightShoulder_x + 50 - maxPoint.x,
 		m_skeletalPoints.rightShoulder_y - 50 + maxPoint.x
 	);
-	circle(matDepth, Point(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y), 5, Scalar(127), FILLED, LINE_8);
+	csp = DepthSpaceToColorSpace(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y);
+	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y), 5, BLUE, FILLED, LINE_8);
 
 	// Left Hip
 	dsp = JointToDepthSpacePoint(JointType_HipLeft);
 	m_skeletalPoints.leftHip_x = (int) dsp.X;
 	m_skeletalPoints.leftHip_y = (int) dsp.Y;
-	Mat leftHipRoi = depthFile1(
-		Range(m_skeletalPoints.leftHip_y, m_skeletalPoints.leftHip_y + 1),
-		Range(m_skeletalPoints.leftHip_x - 150, m_skeletalPoints.leftHip_x - 50)
-	);
-	minMaxLoc(leftHipRoi, NULL, NULL, NULL, &maxPoint);
-	m_tracePoints.leftHip = Point(
-		m_skeletalPoints.leftHip_x - 150 + maxPoint.x,
-		m_skeletalPoints.leftHip_y
-	);
-	circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, Scalar(127), FILLED, LINE_8);
-
+	for (int i = m_skeletalPoints.leftHip_x; i >= 0; i--) {
+		if (matDepthRaw.at<USHORT>(m_skeletalPoints.leftHip_y, i) == 0) {
+			m_tracePoints.leftHip = Point(i, m_skeletalPoints.leftHip_y);
+			break;
+		}
+	}
+	csp = DepthSpaceToColorSpace(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y);
+	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, BLUE, FILLED, LINE_8);
 
 	// Right Hip
 	dsp = JointToDepthSpacePoint(JointType_HipLeft);
 	m_skeletalPoints.rightHip_x = (int) dsp.X;
 	m_skeletalPoints.rightHip_y = (int) dsp.Y;
-	Mat rightHipRoi = depthFile1(
-		Range(m_skeletalPoints.rightHip_y, m_skeletalPoints.rightHip_y + 1),
-		Range(m_skeletalPoints.rightHip_x + 50, m_skeletalPoints.rightHip_x + 150)
-	);
-	minMaxLoc(rightHipRoi, NULL, NULL, &minPoint, NULL);
-	m_tracePoints.rightHip = Point(
-		m_skeletalPoints.rightHip_x + 50 + minPoint.x,
-		m_skeletalPoints.rightHip_y
-	);
-	circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, Scalar(127), FILLED, LINE_8);
+	for (int i = m_skeletalPoints.rightHip_x; i < cDepthWidth; i++) {
+		if (matDepthRaw.at<USHORT>(m_skeletalPoints.rightHip_y, i) == 0) {
+			m_tracePoints.rightHip = Point(i, m_skeletalPoints.rightHip_y);
+			break;
+		}
+	}
+	csp = DepthSpaceToColorSpace(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y);
+	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, BLUE, FILLED, LINE_8);
 
 	dsp = JointToDepthSpacePoint(JointType_ElbowLeft);
 	m_skeletalPoints.leftElbow_x = (int) dsp.X;
@@ -519,15 +574,21 @@ void CColorBasics::KevinsCode()
 		(m_skeletalPoints.leftElbow_x + m_skeletalPoints.leftShoulder_x) / 2,
 		(m_skeletalPoints.leftElbow_y + m_skeletalPoints.leftShoulder_y) / 2
 	);
-	Mat leftHemRoi = depthFile1(
+	Mat leftHemRoi = matDepthRaw(
 		Range(leftBicep.y, leftBicep.y + 1),
 		Range(leftBicep.x - 100, leftBicep.x)
 	);
 	minMaxLoc(leftHemRoi, NULL, NULL, NULL, &maxPoint);
 	m_tracePoints.leftOuterHem = Point(leftBicep.x - 100 + maxPoint.x, leftBicep.y);
 	m_tracePoints.leftInnerHem = Point(leftBicep.x + 100 - maxPoint.x, leftBicep.y);
-	circle(matDepth, Point(m_tracePoints.leftOuterHem.x, m_tracePoints.leftOuterHem.y), 5, Scalar(127), FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.leftInnerHem.x, m_tracePoints.leftInnerHem.y), 5, Scalar(127), FILLED, LINE_8);
+	csp = DepthSpaceToColorSpace(m_tracePoints.leftOuterHem.x, m_tracePoints.leftOuterHem.y);
+	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftOuterHem.x, m_tracePoints.leftOuterHem.y), 5, BLUE, FILLED, LINE_8);
+
+	csp = DepthSpaceToColorSpace(m_tracePoints.leftInnerHem.x, m_tracePoints.leftInnerHem.y);
+	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftInnerHem.x, m_tracePoints.leftInnerHem.y), 5, BLUE, FILLED, LINE_8);
+
 	// Left Outer Hem
 	// circle(rawImage, Point(leftBicep.x - 100 + leftX.x, leftBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
 	// Left Inner Hem
@@ -538,21 +599,27 @@ void CColorBasics::KevinsCode()
 		(m_skeletalPoints.rightElbow_x + m_skeletalPoints.rightShoulder_x) / 2,
 		(m_skeletalPoints.rightElbow_y + m_skeletalPoints.rightShoulder_y) / 2
 	);
-	Mat rightHemRoi = depthFile1(
+	Mat rightHemRoi = matDepthRaw(
 		Range(rightBicep.y, rightBicep.y + 1),
 		Range(rightBicep.x , rightBicep.x + 100)
 	);
 	minMaxLoc(rightHemRoi, NULL, NULL, &minPoint, NULL);
 	m_tracePoints.rightOuterHem = Point(rightBicep.x + minPoint.x, rightBicep.y);
 	m_tracePoints.rightInnerHem = Point(rightBicep.x - minPoint.x, rightBicep.y);
-	circle(matDepth, Point(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y), 5, Scalar(127), FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y), 5, Scalar(127), FILLED, LINE_8);
+	csp = DepthSpaceToColorSpace(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y);
+	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y), 5, BLUE, FILLED, LINE_8);
 
-	// resize(cannyEdgeImage, cannyEdgeImage, Size(), 0.5, 0.5, INTER_AREA);
-	// resize(rawImage, rawImage, Size(), 0.5, 0.5, INTER_AREA);
+	csp = DepthSpaceToColorSpace(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y);
+	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y), 5, BLUE, FILLED, LINE_8);
 
-	namedWindow("DepthFile", WINDOW_AUTOSIZE);
-	imshow("DepthFile", matDepth);
+	namedWindow("depthFile Color", WINDOW_NORMAL);
+	imshow("depthFile Color", matDepthColor);
+
+	namedWindow("depthFile", WINDOW_NORMAL);
+	imshow("depthFile", matDepth);
+
 	waitKey(0);
 }
 
@@ -564,7 +631,6 @@ void CColorBasics::UpdateDepth(UINT* capacity, int* width, int* height, DepthSpa
     }
 
     IDepthFrame* pDepthFrame = NULL;
-
     HRESULT hr = m_pDepthFrameReader->AcquireLatestFrame(&pDepthFrame);
 
     if (SUCCEEDED(hr))
@@ -650,7 +716,6 @@ void CColorBasics::UpdateDepth(UINT* capacity, int* width, int* height, DepthSpa
 			}
 
 			myfile.close();
-
 
 			// DONT DEAD OPEN INSIDE
 			// ProcessDepth(nTime, pBuffer, nWidth, nHeight, nDepthMinReliableDistance, nDepthMaxDistance);
@@ -946,6 +1011,8 @@ void CColorBasics::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int n
         // Draw the data with Direct2D
         m_pDrawColor->Draw(reinterpret_cast<BYTE*>(pBuffer), cColorWidth * cColorHeight * sizeof(RGBQUAD));
 
+		if (m_bSaveScreenshot) {
+		}
     }
 }
 
@@ -1032,7 +1099,7 @@ void CColorBasics::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int n
 //			GetScreenshotFileName(szScreenshotPath, _countof(szScreenshotPath));
 //
 //			// Write out the bitmap to disk
-//			HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(m_pDepthRGBX), nWidth, nHeight, sizeof(RGBQUAD) * 8, szScreenshotPath);
+			// HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(m_pDepthRGBX), nWidth, nHeight, sizeof(RGBQUAD) * 8, szScreenshotPath);
 //
 //			WCHAR szStatusMessage[64 + MAX_PATH];
 //			if (SUCCEEDED(hr))

@@ -101,8 +101,10 @@ private:
     INT64                   m_nNextStatusTime;
     DWORD                   m_nFramesSinceUpdate;
     bool                    m_bSaveScreenshot;
+	bool					m_ranOnceAlready = false;
 
 	UINT16*					m_depthBuffer;
+	RGBQUAD*				m_colorBuffer;
 	Joint					m_joints[JointType_Count];
 
 	skeletalBodyPoints_t	m_skeletalPoints;
@@ -126,14 +128,17 @@ private:
     /// <summary>
     /// Main processing function
     /// </summary>
+	void					LoadBinaryData();
+	void					StoreBinaryData();
     void                    Update();
 	void				    UpdateColor();
 	void					UpdateDepth(UINT* capacity, int* width, int* height, DepthSpacePoint dsp);
 	void					UpdateBody(DepthSpacePoint *dsp);
-	void					Trianglez(UINT capacity, int width, int height, DepthSpacePoint dsp, short threshold);
+	void					Trianglez(DepthSpacePoint dsp, short threshold);
 	void					KevinsCode();
-	UINT16					getValue(int y, int x, int width);
+	UINT16					dGrid(int y, int x);
 	DepthSpacePoint			JointToDepthSpacePoint(JointType jointType);
+	ColorSpacePoint			DepthSpaceToColorSpace(int x, int y);
 
 	void Output(const char* szFormat, ...);
 
