@@ -139,6 +139,7 @@ private:
 	UINT16					dGrid(int y, int x);
 	DepthSpacePoint			JointToDepthSpacePoint(JointType jointType);
 	ColorSpacePoint			DepthSpaceToColorSpace(int x, int y);
+	Point					GetOffsetForJoint(Joint joint);
 
 	void Output(const char* szFormat, ...);
 

@@ -19,6 +19,7 @@
 
 #define RED Scalar(0, 0, USHRT_MAX)
 #define BLUE Scalar(USHRT_MAX, 0, 0)
+#define GREEN Scalar(0, USHRT_MAX, 0)
 
 using namespace std;
 
@@ -326,7 +327,7 @@ void CColorBasics::Update()
  	int width = 0;
 	int height = 0;
 
-	DepthSpacePoint dsp = {0};
+	DepthSpacePoint dsp = { 0 };
 
 	if (m_bSaveScreenshot || !m_ranOnceAlready)
 	//if (m_bSaveScreenshot)
@@ -334,8 +335,8 @@ void CColorBasics::Update()
 		//UpdateBody(&dsp);
 		//UpdateDepth(&capacity, &width, &height, dsp);
 
-		LoadBinaryData();
 		//StoreBinaryData();
+		LoadBinaryData();
 		m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[0].Position, &dsp);
 
 		Trianglez(dsp, 25);
@@ -441,6 +442,18 @@ ColorSpacePoint CColorBasics::DepthSpaceToColorSpace(int x, int y) {
 	return csp;
 }
 
+Point CColorBasics::GetOffsetForJoint(Joint joint) {
+	ColorSpacePoint csp_control = { 0 };
+	ColorSpacePoint csp = { 0 };
+	DepthSpacePoint dsp = { 0 };
+
+	m_pCoordinateMapper->MapCameraPointToColorSpace(joint.Position, &csp_control);
+
+	m_pCoordinateMapper->MapCameraPointToDepthSpace(joint.Position, &dsp);
+	m_pCoordinateMapper->MapDepthPointToColorSpace(dsp, dGrid((int) dsp.Y, (int) dsp.X), &csp);
+	return Point(csp_control.X - csp.X, csp_control.Y - csp.Y);
+}
+
 void CColorBasics::KevinsCode()
 {
 	time_t timehash = time(NULL);
@@ -450,6 +463,7 @@ void CColorBasics::KevinsCode()
 	DepthSpacePoint dsp;
 	Point maxPoint;
 	Point minPoint;
+	Point offset;
 	int diagonalArr[50];
 	Mat diagonalRoi = Mat(1, 50, DataType<int>::type, &diagonalArr);
 
@@ -470,8 +484,9 @@ void CColorBasics::KevinsCode()
 	Point maxX;
 	minMaxLoc(leftNeckRoi, NULL, NULL, NULL, &maxX);
 	m_tracePoints.leftNeck = Point(m_skeletalPoints.neck_x - 100 + maxX.x, m_skeletalPoints.neck_y);
-	csp = DepthSpaceToColorSpace(m_tracePoints.leftNeck.x + 1, m_tracePoints.leftNeck.y + 1);
-	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	csp = DepthSpaceToColorSpace(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y);
+	offset = GetOffsetForJoint(m_joints[JointType_Neck]);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
 	circle(matDepth, Point(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y), 5, BLUE, FILLED, LINE_8);
 
 	Mat rightNeckRoi = matDepthRaw(
@@ -482,7 +497,7 @@ void CColorBasics::KevinsCode()
 	minMaxLoc(rightNeckRoi, NULL, NULL, &minX, NULL);
 	m_tracePoints.rightNeck = Point(m_skeletalPoints.neck_x + minX.x, m_skeletalPoints.neck_y);
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y);
-	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
 	circle(matDepth, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, BLUE, FILLED, LINE_8);
 
 	// Shoulder Left
@@ -506,7 +521,8 @@ void CColorBasics::KevinsCode()
 		m_skeletalPoints.leftShoulder_y - 50 + maxPoint.x
 	);
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y);
-	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	offset = GetOffsetForJoint(m_joints[JointType_ShoulderLeft]);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
 	circle(matDepth, Point(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y), 5, BLUE, FILLED, LINE_8);
 
 	// Right Shoulder
@@ -530,7 +546,8 @@ void CColorBasics::KevinsCode()
 		m_skeletalPoints.rightShoulder_y - 50 + maxPoint.x
 	);
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y);
-	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	offset = GetOffsetForJoint(m_joints[JointType_ShoulderRight]);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
 	circle(matDepth, Point(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y), 5, BLUE, FILLED, LINE_8);
 
 	// Left Hip
@@ -544,7 +561,8 @@ void CColorBasics::KevinsCode()
 		}
 	}
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y);
-	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	offset = GetOffsetForJoint(m_joints[JointType_HipLeft]);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
 	circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, BLUE, FILLED, LINE_8);
 
 	// Right Hip
@@ -558,7 +576,8 @@ void CColorBasics::KevinsCode()
 		}
 	}
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y);
-	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	offset = GetOffsetForJoint(m_joints[JointType_HipRight]);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
 	circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, BLUE, FILLED, LINE_8);
 
 	dsp = JointToDepthSpacePoint(JointType_ElbowLeft);
@@ -582,17 +601,13 @@ void CColorBasics::KevinsCode()
 	m_tracePoints.leftOuterHem = Point(leftBicep.x - 100 + maxPoint.x, leftBicep.y);
 	m_tracePoints.leftInnerHem = Point(leftBicep.x + 100 - maxPoint.x, leftBicep.y);
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftOuterHem.x, m_tracePoints.leftOuterHem.y);
-	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	offset = GetOffsetForJoint(m_joints[JointType_ElbowLeft]);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
 	circle(matDepth, Point(m_tracePoints.leftOuterHem.x, m_tracePoints.leftOuterHem.y), 5, BLUE, FILLED, LINE_8);
 
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftInnerHem.x, m_tracePoints.leftInnerHem.y);
-	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
 	circle(matDepth, Point(m_tracePoints.leftInnerHem.x, m_tracePoints.leftInnerHem.y), 5, BLUE, FILLED, LINE_8);
-
-	// Left Outer Hem
-	// circle(rawImage, Point(leftBicep.x - 100 + leftX.x, leftBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
-	// Left Inner Hem
-	// circle(rawImage, Point(leftBicep.x + 100 - leftX.x, leftBicep.y), 5, Scalar(0, 0, 255), FILLED, LINE_8);
 
 	// Right Hem
 	Point rightBicep = Point(
@@ -607,11 +622,12 @@ void CColorBasics::KevinsCode()
 	m_tracePoints.rightOuterHem = Point(rightBicep.x + minPoint.x, rightBicep.y);
 	m_tracePoints.rightInnerHem = Point(rightBicep.x - minPoint.x, rightBicep.y);
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y);
-	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	offset = GetOffsetForJoint(m_joints[JointType_ElbowRight]);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
 	circle(matDepth, Point(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y), 5, BLUE, FILLED, LINE_8);
 
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y);
-	circle(matDepthColor, Point(csp.X, csp.Y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
 	circle(matDepth, Point(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y), 5, BLUE, FILLED, LINE_8);
 
 	namedWindow("depthFile Color", WINDOW_NORMAL);
