@@ -122,8 +122,8 @@ void CColorBasics::warpTriangle(vector<Point> &source_t, vector<Point> &destinat
 	}
 
 	//	Get mask by filling triangle
-	Mat mask = Mat::zeros(destination_rect.height, destination_rect.width, CV_32FC3);
-	cv::fillConvexPoly(mask, destination_triangle_bounded_int, 3, Scalar(1.0, 1.0, 1.0));
+	Mat mask = Mat::zeros(destination_rect.height, destination_rect.width, CV_32FC4);
+	cv::fillConvexPoly(mask, destination_triangle_bounded_int, 3, Scalar(1.0, 1.0, 1.0, 1.0));
 
 	//	Apply warpImage to small rectangular patches
 	Mat source_crop;
@@ -137,8 +137,13 @@ void CColorBasics::warpTriangle(vector<Point> &source_t, vector<Point> &destinat
 	// Apply the Affine Transform just found to the src image
 	cv::warpAffine(source_crop, dest_crop, warp_mat, dest_crop.size());
 
+	Mat alpha_mask;
+	cv::extractChannel(dest_crop, alpha_mask, 3);
+	cvtColor(alpha_mask, alpha_mask, COLOR_GRAY2BGRA);
+	cv::multiply(mask, alpha_mask, mask);
+
 	cv::multiply(dest_crop, mask, dest_crop);
-	cv::multiply(m_personImage(destination_rect), Scalar(1.0, 1.0, 1.0) - mask, m_personImage(destination_rect));
+	cv::multiply(m_personImage(destination_rect), Scalar(1.0, 1.0, 1.0, 1.0) - mask, m_personImage(destination_rect));
 	m_personImage(destination_rect) = m_personImage(destination_rect) + dest_crop;
 }
 
@@ -357,32 +362,39 @@ void CColorBasics::Update()
 
 	DepthSpacePoint dsp = { 0 };
 
-	if (!m_ranOnceAlready) {
+	bool loadBinaryData = true;
+	bool storeBinaryData = false;
+
+	if (loadBinaryData && !m_ranOnceAlready) {
 		LoadBinaryData();
 	}
 
-	if (m_bSaveScreenshot || !m_ranOnceAlready)
-	//if (m_bSaveScreenshot)
+	if (m_bSaveScreenshot || (loadBinaryData && !m_ranOnceAlready))
 	{
-		//UpdateBody();
-		//UpdateDepth(&capacity, &width, &height);
+		if (!loadBinaryData) {
+			UpdateBody();
+			UpdateDepth(&capacity, &width, &height);
+		}
 
-		//StoreBinaryData();
+		if (storeBinaryData) {
+			StoreBinaryData();
+		}
+
 		m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[0].Position, &dsp);
 		if (isinf(dsp.X) || isinf(dsp.Y)) {
+			Output("Kinect not wok??");
 			return;
 		}
 
+		Output("Trianglez");
 		Trianglez(dsp, 25);
 
+		Output("godlike");
 		vector<Point> personPoints = GodLikeCode();
-		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
-		cvtColor(m_personImage, m_personImage, CV_BGRA2BGR);
-		m_personImage.convertTo(m_personImage, CV_32FC3, 1.0/255.0f);
 
-		m_clothingImage = imread("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\black_tshirt.jpg");
-		m_clothingImage.convertTo(m_clothingImage, CV_32F, 1.0/255.0f);
-		vector<Point> clothingPoints = readClothingPoints("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\black_tshirt.jpg.txt");
+		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
+		//cvtColor(m_personImage, m_personImage, CV_BGRA2BGR);
+		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0/255.0f);
 
 		int triangles[8][3] = {
 			{ 2, 4, 6 },
@@ -395,22 +407,20 @@ void CColorBasics::Update()
 			{ 6, 7, 9 }
 		};
 
-		Mat matDepthColor = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer, sizeof(RGBQUAD) * cColorWidth);
+		Output("mm_yez");
 		for (int i = 0; i < 8; i++) {
 			vector<Point> source_t, dest_t;
 			for (int j = 0; j < 3; j++) {
-				source_t.push_back(clothingPoints[triangles[i][j]]);
+				source_t.push_back(m_shirtPoints[triangles[i][j]]);
 				dest_t.push_back(personPoints[triangles[i][j]]);
-
-				circle(matDepthColor, personPoints[triangles[i][j]], 5, GREEN, FILLED, LINE_8);
 			}
 
+			Output("warpTriangle %d", i);
 			warpTriangle(source_t, dest_t);
 		}
 
-		namedWindow("matDepthRedrawn", WINDOW_KEEPRATIO);
-		imshow("matDepthRedrawn", matDepthColor);
-		imshow("wowee", m_clothingImage);
+		namedWindow("person", WINDOW_NORMAL);
+		imshow("person", m_personImage);
 		waitKey(0);
 
 		WCHAR szStatusMessage[64 + MAX_PATH];
@@ -558,8 +568,8 @@ vector<Point> CColorBasics::GodLikeCode()
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y);
 	offset = GetOffsetForJoint(m_joints[JointType_Neck]);
 	points[0] = Point(csp.X, csp.Y) + offset;
-	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y), 5, BLUE, FILLED, LINE_8);
+	//circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	//circle(matDepth, Point(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y), 5, BLUE, FILLED, LINE_8);
 
 	Mat rightNeckRoi = matDepthRaw(
 		Range(m_skeletalPoints.neck_y, m_skeletalPoints.neck_y + 1),
@@ -570,8 +580,8 @@ vector<Point> CColorBasics::GodLikeCode()
 	m_tracePoints.rightNeck = Point(m_skeletalPoints.neck_x + minX.x, m_skeletalPoints.neck_y);
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y);
 	points[1] = Point(csp.X, csp.Y) + offset;
-	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, BLUE, FILLED, LINE_8);
+	//circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	//circle(matDepth, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, BLUE, FILLED, LINE_8);
 
 	// Shoulder Left
 	dsp = JointToDepthSpacePoint(JointType_ShoulderLeft);
@@ -596,8 +606,8 @@ vector<Point> CColorBasics::GodLikeCode()
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y);
 	offset = GetOffsetForJoint(m_joints[JointType_ShoulderLeft]);
 	points[2] = Point(csp.X, csp.Y) + offset;
-	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y), 5, BLUE, FILLED, LINE_8);
+	//circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	//circle(matDepth, Point(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y), 5, BLUE, FILLED, LINE_8);
 
 	// Right Shoulder
 	dsp = JointToDepthSpacePoint(JointType_ShoulderRight);
@@ -622,8 +632,8 @@ vector<Point> CColorBasics::GodLikeCode()
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y);
 	offset = GetOffsetForJoint(m_joints[JointType_ShoulderRight]);
 	points[3] = Point(csp.X, csp.Y) + offset;
-	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y), 5, BLUE, FILLED, LINE_8);
+	//circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	//circle(matDepth, Point(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y), 5, BLUE, FILLED, LINE_8);
 
 	// Left Hip
 	dsp = JointToDepthSpacePoint(JointType_HipLeft);
@@ -638,8 +648,8 @@ vector<Point> CColorBasics::GodLikeCode()
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y);
 	offset = GetOffsetForJoint(m_joints[JointType_HipLeft]);
 	points[8] = Point(csp.X, csp.Y) + offset;
-	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, BLUE, FILLED, LINE_8);
+	//circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	//circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, BLUE, FILLED, LINE_8);
 
 	// Right Hip
 	dsp = JointToDepthSpacePoint(JointType_HipLeft);
@@ -654,8 +664,8 @@ vector<Point> CColorBasics::GodLikeCode()
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y);
 	offset = GetOffsetForJoint(m_joints[JointType_HipRight]);
 	points[9] = Point(csp.X, csp.Y) + offset;
-	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, BLUE, FILLED, LINE_8);
+	//circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	//circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, BLUE, FILLED, LINE_8);
 
 	dsp = JointToDepthSpacePoint(JointType_ElbowLeft);
 	m_skeletalPoints.leftElbow_x = (int) dsp.X;
@@ -942,6 +952,10 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
     {
         case WM_INITDIALOG:
         {
+			m_clothingImage = imread("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\black_tshirt_transparent.png", IMREAD_UNCHANGED);
+			m_clothingImage.convertTo(m_clothingImage, CV_32F, 1.0/255.0f);
+			m_shirtPoints = readClothingPoints("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\black_tshirt.jpg.txt");
+
             // Bind application window handle
             m_hWnd = hWnd;
 

@@ -103,6 +103,7 @@ private:
     DWORD                   m_nFramesSinceUpdate;
     bool                    m_bSaveScreenshot;
 	bool					m_ranOnceAlready = false;
+	vector<Point>			m_shirtPoints;
 
 	UINT16*					m_depthBuffer;
 	RGBQUAD*				m_colorBuffer;
