@@ -62,8 +62,9 @@ UINT16 CColorBasics::dGrid(int y, int x)
 	return m_depthBuffer[(y * cDepthWidth) + x];
 }
 
-void CColorBasics::Trianglez(DepthSpacePoint dsp, short threshold)
+void CColorBasics::DisjointEdgeDetection(DepthSpacePoint dsp)
 {
+	short threshold = 25;
 	DisjointSet ds(cDepthHeight * cDepthWidth);
 
     for (int i = 1; i < cDepthWidth; i++) {
@@ -105,57 +106,7 @@ void CColorBasics::Trianglez(DepthSpacePoint dsp, short threshold)
 	}
 }
 
-void CColorBasics::MapImage(vector<Point> &clothing_points, vector<Point> &person_points) {
-	// Find bounding rectangle for each collection of points
-	Rect clothing_rect = boundingRect(clothing_points);
-	Rect person_rect = boundingRect(person_points);
-
-	// Find triangle used for warping
-	int triangle[3] = { 0, 1, 8 };
-	vector<Point> clothing_triangle;
-	vector<Point> person_triangle;
-	for (int i = 0; i < 3; i++) {
-		clothing_triangle.push_back(clothing_points[triangle[i]]);
-		person_triangle.push_back(person_points[triangle[i]]);
-	}
-
-	// Offset points by left top corner of the respective rectangles
-	Point2f clothing_triangle_bounded[3];
-	Point2f person_triangle_bounded[3];
-	Point person_triangle_bounded_int[3];
-
-	for (int i = 0; i < 3; i++) {
-		clothing_triangle_bounded[i] = Point2f(clothing_triangle[i].x - clothing_rect.x, clothing_triangle[i].y - clothing_rect.y);
-		person_triangle_bounded[i] = Point2f(person_triangle[i].x - person_rect.x, person_triangle[i].y - person_rect.y);
-		person_triangle_bounded_int[i] = Point(person_triangle[i].x - person_rect.x, person_triangle[i].y - person_rect.y);
-	}
-
-	//	Get mask by filling triangle
-	//Mat mask = Mat::zeros(person_rect.height, person_rect.width, CV_32FC4);
-	//cv::fillConvexPoly(mask, person_triangle_bounded_int, 3, Scalar(1.0, 1.0, 1.0, 1.0));
-
-	//	Apply warpImage to small rectangular patches
-	Mat clothing_crop;
-	m_clothingImage(clothing_rect).copyTo(clothing_crop);
-
-	Mat person_crop = Mat::zeros(person_rect.height, person_rect.width, clothing_crop.type());
-
-	// Given a pair of triangles, find the affine transform.
-	Mat warp_mat = getAffineTransform(clothing_triangle_bounded, person_triangle_bounded);
-
-	// Apply the Affine Transform just found to the src image
-	cv::warpAffine(clothing_crop, person_crop, warp_mat, person_crop.size());
-
-	Mat alpha_mask;
-	cv::extractChannel(person_crop, alpha_mask, 3);
-	cvtColor(alpha_mask, alpha_mask, COLOR_GRAY2BGRA);
-
-	cv::multiply(person_crop, alpha_mask, person_crop);
-	cv::multiply(m_personImage(person_rect), Scalar(1.0, 1.0, 1.0, 1.0) - alpha_mask, m_personImage(person_rect));
-	m_personImage(person_rect) = m_personImage(person_rect) + person_crop;
-}
-
-void CColorBasics::warpTriangle(vector<Point> &source_t, vector<Point> &destination_t) {
+void CColorBasics::MapTriangle(vector<Point> &source_t, vector<Point> &destination_t) {
 	// Find bounding rectangle for each triangle
 	Rect source_rect = boundingRect(source_t);
 	Rect destination_rect = boundingRect(destination_t);
@@ -172,8 +123,8 @@ void CColorBasics::warpTriangle(vector<Point> &source_t, vector<Point> &destinat
 	}
 
 	//	Get mask by filling triangle
-	Mat mask = Mat::zeros(destination_rect.height, destination_rect.width, CV_32FC4);
-	cv::fillConvexPoly(mask, destination_triangle_bounded_int, 3, Scalar(1.0, 1.0, 1.0, 1.0));
+	//Mat mask = Mat::zeros(destination_rect.height, destination_rect.width, CV_32FC4);
+	//cv::fillConvexPoly(mask, destination_triangle_bounded_int, 3, Scalar(1.0, 1.0, 1.0, 1.0));
 
 	//	Apply warpImage to small rectangular patches
 	Mat source_crop;
@@ -190,11 +141,12 @@ void CColorBasics::warpTriangle(vector<Point> &source_t, vector<Point> &destinat
 	Mat alpha_mask;
 	cv::extractChannel(dest_crop, alpha_mask, 3);
 	cvtColor(alpha_mask, alpha_mask, COLOR_GRAY2BGRA);
-	cv::multiply(mask, alpha_mask, mask);
+	//cv::multiply(mask, alpha_mask, mask);
 
-	cv::multiply(dest_crop, mask, dest_crop);
-	cv::multiply(m_personImage(destination_rect), Scalar(1.0, 1.0, 1.0, 1.0) - mask, m_personImage(destination_rect));
+	cv::multiply(dest_crop, alpha_mask, dest_crop);
+	cv::multiply(m_personImage(destination_rect), Scalar(1.0, 1.0, 1.0, 1.0) - alpha_mask, m_personImage(destination_rect));
 	m_personImage(destination_rect) = m_personImage(destination_rect) + dest_crop;
+
 }
 
 void CColorBasics::Output(const char* szFormat, ...)
@@ -410,7 +362,7 @@ void CColorBasics::Update()
  	int width = 0;
 	int height = 0;
 
-	DepthSpacePoint dsp = { 0 };
+	DepthSpacePoint dspHipJoint = { 0 };
 
 	bool loadBinaryData = true;
 	bool storeBinaryData = false;
@@ -430,50 +382,15 @@ void CColorBasics::Update()
 			StoreBinaryData();
 		}
 
-		m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[0].Position, &dsp);
-		if (isinf(dsp.X) || isinf(dsp.Y)) {
+		m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[0].Position, &dspHipJoint);
+		if (isinf(dspHipJoint.X) || isinf(dspHipJoint.Y)) {
 			Output("Kinect not wok??");
 			return;
 		}
 
-		Output("Trianglez");
-		Trianglez(dsp, 25);
-
-		Output("godlike");
-		vector<Point> personPoints = GodLikeCode();
-
-		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
-		//cvtColor(m_personImage, m_personImage, CV_BGRA2BGR);
-		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0/255.0f);
-
-		int triangles[8][3] = {
-			{ 2, 4, 6 },
-			{ 2, 0, 6 },
-			{ 0, 1, 6 },
-			{ 6, 1, 7 },
-			{ 1, 3, 7 },
-			{ 3, 5, 7 },
-			{ 6, 8, 9 },
-			{ 6, 7, 9 }
-		};
-
-		Output("mm_yez");
-		for (int i = 0; i < 8; i++) {
-			vector<Point> source_t, dest_t;
-			for (int j = 0; j < 3; j++) {
-				source_t.push_back(m_shirtPoints[triangles[i][j]]);
-				dest_t.push_back(personPoints[triangles[i][j]]);
-			}
-
-			Output("warpTriangle %d", i);
-			warpTriangle(source_t, dest_t);
-
-			namedWindow("person", WINDOW_NORMAL);
-			imshow("person", m_personImage);
-			waitKey(0);
-		}
-
-		//MapImage(m_shirtPoints, personPoints);
+		DisjointEdgeDetection(dspHipJoint);
+		vector<Point> personPoints = LandmarkRecognition();
+		ApplyClothing(personPoints);
 
 		WCHAR szStatusMessage[64 + MAX_PATH];
 		StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Saved files", NULL);
@@ -586,7 +503,7 @@ Point CColorBasics::GetOffsetForJoint(Joint joint) {
 	return Point(csp_control.X - csp.X, csp_control.Y - csp.Y);
 }
 
-vector<Point> CColorBasics::GodLikeCode()
+vector<Point> CColorBasics::LandmarkRecognition()
 {
 	time_t timehash = time(NULL);
 	Mat matDepth, matDepthRaw, matDepthColor;
@@ -620,8 +537,8 @@ vector<Point> CColorBasics::GodLikeCode()
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y);
 	offset = GetOffsetForJoint(m_joints[JointType_Neck]);
 	points[0] = Point(csp.X, csp.Y) + offset;
-	//circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y), 5, BLUE, FILLED, LINE_8);
 
 	Mat rightNeckRoi = matDepthRaw(
 		Range(m_skeletalPoints.neck_y, m_skeletalPoints.neck_y + 1),
@@ -632,8 +549,8 @@ vector<Point> CColorBasics::GodLikeCode()
 	m_tracePoints.rightNeck = Point(m_skeletalPoints.neck_x + minX.x, m_skeletalPoints.neck_y);
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y);
 	points[1] = Point(csp.X, csp.Y) + offset;
-	//circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, BLUE, FILLED, LINE_8);
 
 	// Shoulder Left
 	dsp = JointToDepthSpacePoint(JointType_ShoulderLeft);
@@ -650,7 +567,6 @@ vector<Point> CColorBasics::GodLikeCode()
 		diagonalArr[i] = intensity.val[0];
 	}
 	minMaxLoc(diagonalRoi, NULL, NULL, NULL, &maxPoint);
-	//circle(rawImage, Point(x - 50 + maxPoint.x, y - 50 + maxPoint.x), 5, Scalar(0, 0, 255), FILLED, LINE_8);
 	m_tracePoints.leftShoulder = Point(
 		m_skeletalPoints.leftShoulder_x - 50 + maxPoint.x,
 		m_skeletalPoints.leftShoulder_y - 50 + maxPoint.x
@@ -658,8 +574,8 @@ vector<Point> CColorBasics::GodLikeCode()
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y);
 	offset = GetOffsetForJoint(m_joints[JointType_ShoulderLeft]);
 	points[2] = Point(csp.X, csp.Y) + offset;
-	//circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y), 5, BLUE, FILLED, LINE_8);
 
 	// Right Shoulder
 	dsp = JointToDepthSpacePoint(JointType_ShoulderRight);
@@ -684,8 +600,8 @@ vector<Point> CColorBasics::GodLikeCode()
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y);
 	offset = GetOffsetForJoint(m_joints[JointType_ShoulderRight]);
 	points[3] = Point(csp.X, csp.Y) + offset;
-	//circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y), 5, BLUE, FILLED, LINE_8);
 
 	// Left Hip
 	dsp = JointToDepthSpacePoint(JointType_HipLeft);
@@ -700,8 +616,8 @@ vector<Point> CColorBasics::GodLikeCode()
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y);
 	offset = GetOffsetForJoint(m_joints[JointType_HipLeft]);
 	points[8] = Point(csp.X, csp.Y) + offset;
-	//circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, BLUE, FILLED, LINE_8);
 
 	// Right Hip
 	dsp = JointToDepthSpacePoint(JointType_HipLeft);
@@ -716,8 +632,8 @@ vector<Point> CColorBasics::GodLikeCode()
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y);
 	offset = GetOffsetForJoint(m_joints[JointType_HipRight]);
 	points[9] = Point(csp.X, csp.Y) + offset;
-	//circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, BLUE, FILLED, LINE_8);
+	circle(matDepthColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, BLUE, FILLED, LINE_8);
 
 	dsp = JointToDepthSpacePoint(JointType_ElbowLeft);
 	m_skeletalPoints.leftElbow_x = (int) dsp.X;
@@ -782,6 +698,50 @@ vector<Point> CColorBasics::GodLikeCode()
 	//waitKey(0);
 
 	return points;
+}
+
+void CColorBasics::ApplyClothing(vector<Point> personPoints) {
+	m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
+	//cvtColor(m_personImage, m_personImage, CV_BGRA2BGR);
+	m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
+
+	int triangles[8][3] = {
+		{ 2, 4, 6 },
+		{ 2, 0, 6 },
+		{ 0, 1, 6 },
+		{ 6, 1, 7 },
+		{ 1, 3, 7 },
+		{ 3, 5, 7 },
+		{ 6, 8, 9 },
+		{ 6, 7, 9 }
+	};
+
+	vector<vector<Point>> not_delauney_triangles;
+
+	for (int i = 0; i < 8; i++) {
+		vector<Point> source_t, dest_t;
+		for (int j = 0; j < 3; j++) {
+			source_t.push_back(m_shirtPoints[triangles[i][j]]);
+			dest_t.push_back(personPoints[triangles[i][j]]);
+		}
+
+		not_delauney_triangles.push_back(dest_t);
+		MapTriangle(source_t, dest_t);
+
+		for (int i = 0; i < not_delauney_triangles.size(); i++) {
+			vector<Point> destination_t = not_delauney_triangles[i];
+
+			for (int j = 0; j < destination_t.size(); j++) {
+				Point start = destination_t[j];
+				Point end = (j == destination_t.size() - 1) ? destination_t[0] : destination_t[j + 1];
+				line(m_personImage, start, end, RED, 2);
+			}
+		}
+
+		namedWindow("person", WINDOW_NORMAL);
+		imshow("person", m_personImage);
+		waitKey(0);
+	}
 }
 
 void CColorBasics::UpdateDepth(UINT* capacity, int* width, int* height)

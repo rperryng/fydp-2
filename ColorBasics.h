@@ -139,10 +139,10 @@ private:
 	void				    UpdateColor();
 	void					UpdateDepth(UINT* capacity, int* width, int* height);
 	void					UpdateBody();
-	void					Trianglez(DepthSpacePoint dsp, short threshold);
-	void					MapImage(vector<Point> &source_t, vector<Point> &destination_t);
-	void					warpTriangle(vector<Point> &source_t, vector<Point> &destination_t);
-	vector<Point>			GodLikeCode();
+	void					DisjointEdgeDetection(DepthSpacePoint dsp);
+	void					MapTriangle(vector<Point> &source_t, vector<Point> &destination_t);
+	void					ApplyClothing(vector<Point> personPoints);
+	vector<Point>			LandmarkRecognition();
 	vector<Point>			readClothingPoints(string filename);
 
 	UINT16					dGrid(int y, int x);
