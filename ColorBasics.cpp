@@ -33,7 +33,7 @@ private:
 DisjointSet::DisjointSet(int num_nodes) :
 	parent_(num_nodes), rank_(num_nodes, 0)
 {
-	for (int i = 0; i<num_nodes; ++i) parent_[i] = i;
+	for (int i = 0; i < num_nodes; ++i) parent_[i] = i;
 }
 
 int DisjointSet::find(int element)
@@ -67,30 +67,30 @@ void CColorBasics::DisjointEdgeDetection(DepthSpacePoint dsp)
 	short threshold = 25;
 	DisjointSet ds(cDepthHeight * cDepthWidth);
 
-    for (int i = 1; i < cDepthWidth; i++) {
-        if (abs(dGrid(0, i) - dGrid(0, i-1)) < threshold) {
-            ds.do_union(i, i-1);
-        }
-    }
+	for (int i = 1; i < cDepthWidth; i++) {
+		if (abs(dGrid(0, i) - dGrid(0, i - 1)) < threshold) {
+			ds.do_union(i, i - 1);
+		}
+	}
 
-    for (int i = 1; i < cDepthHeight; i++) {
-        if (abs(dGrid(i, 0) - dGrid(i-1, 0)) < threshold) {
-            ds.do_union(i*cDepthWidth, (i-1)*cDepthWidth);
-        }
-    }
-    
 	for (int i = 1; i < cDepthHeight; i++) {
-        for (int j = 1; j < cDepthWidth; j++) {
-			if (abs(dGrid(i, j) - dGrid(i-1, j)) < threshold) {
-                ds.do_union(i*cDepthWidth + j, (i-1)*cDepthWidth+j);
-            }
-            if (abs(dGrid(i, j-1) - dGrid(i, j)) < threshold) {
-                ds.do_union(i*cDepthWidth + j, i*cDepthWidth+j-1);
-            }
-        }
-    }
+		if (abs(dGrid(i, 0) - dGrid(i - 1, 0)) < threshold) {
+			ds.do_union(i*cDepthWidth, (i - 1)*cDepthWidth);
+		}
+	}
 
-	int personComponent = ds.find(cDepthWidth * ((int) (dsp.Y)) + (int) (dsp.X));
+	for (int i = 1; i < cDepthHeight; i++) {
+		for (int j = 1; j < cDepthWidth; j++) {
+			if (abs(dGrid(i, j) - dGrid(i - 1, j)) < threshold) {
+				ds.do_union(i*cDepthWidth + j, (i - 1)*cDepthWidth + j);
+			}
+			if (abs(dGrid(i, j - 1) - dGrid(i, j)) < threshold) {
+				ds.do_union(i*cDepthWidth + j, i*cDepthWidth + j - 1);
+			}
+		}
+	}
+
+	int personComponent = ds.find(cDepthWidth * ((int)(dsp.Y)) + (int)(dsp.X));
 	Output("personComponent: %d\n", personComponent);
 
 	for (int i = 0; i < cDepthHeight; i++) {
@@ -98,7 +98,8 @@ void CColorBasics::DisjointEdgeDetection(DepthSpacePoint dsp)
 			int num = ds.find(cDepthWidth * i + j);
 			if (num == personComponent) {
 				m_depthBuffer[i * cDepthWidth + j] = USHRT_MAX;
-			} else {
+			}
+			else {
 				char zero = 0;
 				m_depthBuffer[i * cDepthWidth + j] = 0;
 			}
@@ -106,7 +107,31 @@ void CColorBasics::DisjointEdgeDetection(DepthSpacePoint dsp)
 	}
 }
 
-void CColorBasics::MapTriangle(vector<Point> &source_t, vector<Point> &destination_t) {
+int directionOfPoint(pair<Point, Point> line, Point c) {
+	Point a = line.first;
+	Point b = line.second;
+	return ((b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x));
+}
+
+vector<Point> cornersOfRect(Rect rectangle) {
+	vector<Point> corners;
+	Point origin(rectangle.x, rectangle.y);
+	corners.push_back(origin);
+	corners.push_back(origin + Point(rectangle.width - 1, 0));
+	corners.push_back(origin + Point(0, rectangle.height - 1));
+	corners.push_back(origin + Point(rectangle.width - 1, rectangle.height - 1));
+	return corners;
+}
+
+bool sameSign(int x, int y) {
+	return (y >= 0) ^ (x < 0);
+}
+
+void CColorBasics::MapTriangle(
+	vector<Point> &source_t,
+	vector<Point> &destination_t,
+	vector<pair<Point, Point>> cutoffLines
+) {
 	// Find bounding rectangle for each triangle
 	Rect source_rect = boundingRect(source_t);
 	Rect destination_rect = boundingRect(destination_t);
@@ -125,6 +150,53 @@ void CColorBasics::MapTriangle(vector<Point> &source_t, vector<Point> &destinati
 	//	Get mask by filling triangle
 	//Mat mask = Mat::zeros(destination_rect.height, destination_rect.width, CV_32FC4);
 	//cv::fillConvexPoly(mask, destination_triangle_bounded_int, 3, Scalar(1.0, 1.0, 1.0, 1.0));
+	vector<Mat> masks;
+
+	for (int i = 0; i < cutoffLines.size(); i++) {
+		pair<Point, Point> cutoffLine = cutoffLines[i];
+		Point thirdPoint;
+
+		for (int j = 0; j < destination_t.size(); j++) {
+			if (destination_t[j] == cutoffLine.first) continue;
+			if (destination_t[j] == cutoffLine.second) continue;
+			thirdPoint = destination_t[j];
+		}
+
+		int thirdPointDirection = directionOfPoint(cutoffLine, thirdPoint);
+		Point maskCorner;
+		bool foundCorner = false;
+		vector<Point> corners = cornersOfRect(destination_rect);
+
+		for (int j = 0; j < corners.size(); j++) {
+			Point corner = corners[j];
+			circle(m_personImage, corner, 5, GREEN, FILLED, LINE_8);
+
+			int cornerDirection = directionOfPoint(cutoffLine, corner);
+			Output("Corner direction [%d] is %d, sameSign: %d", j, cornerDirection, sameSign(thirdPointDirection, cornerDirection));
+			if (cornerDirection != 0 && !sameSign(thirdPointDirection, cornerDirection)) {
+				foundCorner = true;
+				maskCorner = corner;
+			}
+		}
+
+		if (foundCorner) {
+			Mat mask = Mat::zeros(destination_rect.height, destination_rect.width, CV_32FC4);
+			Point origin(destination_rect.x, destination_rect.y);
+			Point maskTriangle[3] = {
+				cutoffLine.first - origin,
+				cutoffLine.second - origin,
+				maskCorner - origin
+			};
+			cv::fillConvexPoly(mask, maskTriangle, 3, Scalar(1.0, 1.0, 1.0, 1.0));
+			masks.push_back(Scalar(1.0, 1.0, 1.0, 1.0) - mask);
+		}
+	}
+
+	for (int i = 0; i < masks.size(); i++) {
+		Mat mask = masks[i];
+		namedWindow(to_string(i), WINDOW_NORMAL);
+		imshow(to_string(i), mask);
+	}
 
 	//	Apply warpImage to small rectangular patches
 	Mat source_crop;
@@ -141,7 +213,10 @@ void CColorBasics::MapTriangle(vector<Point> &source_t, vector<Point> &destinati
 	Mat alpha_mask;
 	cv::extractChannel(dest_crop, alpha_mask, 3);
 	cvtColor(alpha_mask, alpha_mask, COLOR_GRAY2BGRA);
-	//cv::multiply(mask, alpha_mask, mask);
+
+	for (int i = 0; i < masks.size(); i++) {
+		cv::multiply(alpha_mask, masks[i], alpha_mask);
+	}
 
 	cv::multiply(dest_crop, alpha_mask, dest_crop);
 	cv::multiply(m_personImage(destination_rect), Scalar(1.0, 1.0, 1.0, 1.0) - alpha_mask, m_personImage(destination_rect));
@@ -166,7 +241,7 @@ void CColorBasics::Output(const char* szFormat, ...)
 /// </summary>
 /// <param name="hInstance">handle to the application instance</param>
 /// <param name="hPrevInstance">always 0</param>
-/// <param name="lpCmdLine">command line arguments</param>
+/// <param name="lpCmdLine">command cutoffLine arguments</param>
 /// <param name="nCmdShow">whether to display minimized, maximized, or normally</param>
 /// <returns>status</returns>
 int APIENTRY wWinMain(    
@@ -700,6 +775,10 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	return points;
 }
 
+bool vectorContains(vector<Point> container, Point value) {
+	return find(container.begin(), container.end(), value) != container.end();
+}
+
 void CColorBasics::ApplyClothing(vector<Point> personPoints) {
 	m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 	//cvtColor(m_personImage, m_personImage, CV_BGRA2BGR);
@@ -716,7 +795,8 @@ void CColorBasics::ApplyClothing(vector<Point> personPoints) {
 		{ 6, 7, 9 }
 	};
 
-	vector<vector<Point>> not_delauney_triangles;
+	vector<vector<Point>> sourceTriangles;
+	vector<vector<Point>> destinationTriangles;
 
 	for (int i = 0; i < 8; i++) {
 		vector<Point> source_t, dest_t;
@@ -725,17 +805,42 @@ void CColorBasics::ApplyClothing(vector<Point> personPoints) {
 			dest_t.push_back(personPoints[triangles[i][j]]);
 		}
 
-		not_delauney_triangles.push_back(dest_t);
-		MapTriangle(source_t, dest_t);
+		sourceTriangles.push_back(source_t);
+		destinationTriangles.push_back(dest_t);
+	}
 
-		for (int i = 0; i < not_delauney_triangles.size(); i++) {
-			vector<Point> destination_t = not_delauney_triangles[i];
+	for (int i = 0; i < 8; i++) {
+		vector<Point> source_t = sourceTriangles[i];
+		vector<Point> destination_t = destinationTriangles[i];
+		vector<pair<Point, Point>> cutoffLines;
 
-			for (int j = 0; j < destination_t.size(); j++) {
-				Point start = destination_t[j];
-				Point end = (j == destination_t.size() - 1) ? destination_t[0] : destination_t[j + 1];
+		for (int j = 0; j < 8; j++) {
+			if (i == j) continue;
+			vector<Point> other_t = destinationTriangles[j];
+
+			for (int k = 0; k < destination_t.size(); k++) {
+				Point start = destination_t[k];
+				Point end = destination_t[(k == destination_t.size() - 1) ? 0 : k + 1];
+				if (vectorContains(other_t, start) && vectorContains(other_t, end)) {
+					cutoffLines.push_back(pair<Point, Point>(start, end));
+				}
+			}
+		}
+
+		MapTriangle(source_t, destination_t, cutoffLines);
+
+		for (int j = 0; j <= i; j++) {
+			vector<Point> currentTriangle = destinationTriangles[j];
+			for (int k = 0; k < currentTriangle.size(); k++) {
+				Point start = currentTriangle[k];
+				Point end = (k == currentTriangle.size() - 1) ? currentTriangle[0] : currentTriangle[k + 1];
 				line(m_personImage, start, end, RED, 2);
 			}
+		}
+
+		for (int j = 0; j < cutoffLines.size(); j++) {
+			pair<Point, Point> cutoffLine = cutoffLines[j];
+			line(m_personImage, cutoffLine.first, cutoffLine.second, GREEN, 2);
 		}
 
 		namedWindow("person", WINDOW_NORMAL);
@@ -801,7 +906,7 @@ void CColorBasics::UpdateDepth(UINT* capacity, int* width, int* height)
 			// we are setting nDepthMaxDistance to the extreme potential depth threshold
 			//nDepthMaxDistance = USHRT_MAX;
 
-			// Note:  If you wish to filter by reliable depth distance, uncomment the following line.
+			// Note:  If you wish to filter by reliable depth distance, uncomment the following cutoffLine.
             hr = pDepthFrame->get_DepthMaxReliableDistance(&nDepthMaxDistance);
         }
 

@@ -140,7 +140,7 @@ private:
 	void					UpdateDepth(UINT* capacity, int* width, int* height);
 	void					UpdateBody();
 	void					DisjointEdgeDetection(DepthSpacePoint dsp);
-	void					MapTriangle(vector<Point> &source_t, vector<Point> &destination_t);
+	void					MapTriangle(vector<Point> &source_t, vector<Point> &destination_t, vector<pair<Point, Point>> cutoffLines);
 	void					ApplyClothing(vector<Point> personPoints);
 	vector<Point>			LandmarkRecognition();
 	vector<Point>			readClothingPoints(string filename);
