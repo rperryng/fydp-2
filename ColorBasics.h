@@ -16,6 +16,7 @@
 #include "Kinect.h"
 
 using namespace cv;
+using namespace std;
 
 struct skeletalBodyPoints_t {
 	int neck_y;
@@ -109,6 +110,9 @@ private:
 
 	skeletalBodyPoints_t	m_skeletalPoints;
 	tracePoints_t			m_tracePoints;
+
+	Mat						m_personImage;
+	Mat						m_clothingImage;
 	
     // Current Kinect
     IKinectSensor*          m_pKinectSensor;
@@ -132,10 +136,13 @@ private:
 	void					StoreBinaryData();
     void                    Update();
 	void				    UpdateColor();
-	void					UpdateDepth(UINT* capacity, int* width, int* height, DepthSpacePoint dsp);
-	void					UpdateBody(DepthSpacePoint *dsp);
+	void					UpdateDepth(UINT* capacity, int* width, int* height);
+	void					UpdateBody();
 	void					Trianglez(DepthSpacePoint dsp, short threshold);
-	void					KevinsCode();
+	void					warpTriangle(vector<Point> &source_t, vector<Point> &destination_t);
+	vector<Point>			GodLikeCode();
+	vector<Point>			readClothingPoints(string filename);
+
 	UINT16					dGrid(int y, int x);
 	DepthSpacePoint			JointToDepthSpacePoint(JointType jointType);
 	ColorSpacePoint			DepthSpaceToColorSpace(int x, int y);
