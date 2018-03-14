@@ -105,6 +105,56 @@ void CColorBasics::Trianglez(DepthSpacePoint dsp, short threshold)
 	}
 }
 
+void CColorBasics::MapImage(vector<Point> &clothing_points, vector<Point> &person_points) {
+	// Find bounding rectangle for each collection of points
+	Rect clothing_rect = boundingRect(clothing_points);
+	Rect person_rect = boundingRect(person_points);
+
+	// Find triangle used for warping
+	int triangle[3] = { 0, 1, 8 };
+	vector<Point> clothing_triangle;
+	vector<Point> person_triangle;
+	for (int i = 0; i < 3; i++) {
+		clothing_triangle.push_back(clothing_points[triangle[i]]);
+		person_triangle.push_back(person_points[triangle[i]]);
+	}
+
+	// Offset points by left top corner of the respective rectangles
+	Point2f clothing_triangle_bounded[3];
+	Point2f person_triangle_bounded[3];
+	Point person_triangle_bounded_int[3];
+
+	for (int i = 0; i < 3; i++) {
+		clothing_triangle_bounded[i] = Point2f(clothing_triangle[i].x - clothing_rect.x, clothing_triangle[i].y - clothing_rect.y);
+		person_triangle_bounded[i] = Point2f(person_triangle[i].x - person_rect.x, person_triangle[i].y - person_rect.y);
+		person_triangle_bounded_int[i] = Point(person_triangle[i].x - person_rect.x, person_triangle[i].y - person_rect.y);
+	}
+
+	//	Get mask by filling triangle
+	//Mat mask = Mat::zeros(person_rect.height, person_rect.width, CV_32FC4);
+	//cv::fillConvexPoly(mask, person_triangle_bounded_int, 3, Scalar(1.0, 1.0, 1.0, 1.0));
+
+	//	Apply warpImage to small rectangular patches
+	Mat clothing_crop;
+	m_clothingImage(clothing_rect).copyTo(clothing_crop);
+
+	Mat person_crop = Mat::zeros(person_rect.height, person_rect.width, clothing_crop.type());
+
+	// Given a pair of triangles, find the affine transform.
+	Mat warp_mat = getAffineTransform(clothing_triangle_bounded, person_triangle_bounded);
+
+	// Apply the Affine Transform just found to the src image
+	cv::warpAffine(clothing_crop, person_crop, warp_mat, person_crop.size());
+
+	Mat alpha_mask;
+	cv::extractChannel(person_crop, alpha_mask, 3);
+	cvtColor(alpha_mask, alpha_mask, COLOR_GRAY2BGRA);
+
+	cv::multiply(person_crop, alpha_mask, person_crop);
+	cv::multiply(m_personImage(person_rect), Scalar(1.0, 1.0, 1.0, 1.0) - alpha_mask, m_personImage(person_rect));
+	m_personImage(person_rect) = m_personImage(person_rect) + person_crop;
+}
+
 void CColorBasics::warpTriangle(vector<Point> &source_t, vector<Point> &destination_t) {
 	// Find bounding rectangle for each triangle
 	Rect source_rect = boundingRect(source_t);
@@ -417,11 +467,13 @@ void CColorBasics::Update()
 
 			Output("warpTriangle %d", i);
 			warpTriangle(source_t, dest_t);
+
+			namedWindow("person", WINDOW_NORMAL);
+			imshow("person", m_personImage);
+			waitKey(0);
 		}
 
-		namedWindow("person", WINDOW_NORMAL);
-		imshow("person", m_personImage);
-		waitKey(0);
+		//MapImage(m_shirtPoints, personPoints);
 
 		WCHAR szStatusMessage[64 + MAX_PATH];
 		StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Saved files", NULL);
@@ -952,7 +1004,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
     {
         case WM_INITDIALOG:
         {
-			m_clothingImage = imread("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\black_tshirt_transparent.png", IMREAD_UNCHANGED);
+			m_clothingImage = imread("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\pink_tshirt_transparent.png", IMREAD_UNCHANGED);
 			m_clothingImage.convertTo(m_clothingImage, CV_32F, 1.0/255.0f);
 			m_shirtPoints = readClothingPoints("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\black_tshirt.jpg.txt");
 

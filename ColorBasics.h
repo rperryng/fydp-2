@@ -140,6 +140,7 @@ private:
 	void					UpdateDepth(UINT* capacity, int* width, int* height);
 	void					UpdateBody();
 	void					Trianglez(DepthSpacePoint dsp, short threshold);
+	void					MapImage(vector<Point> &source_t, vector<Point> &destination_t);
 	void					warpTriangle(vector<Point> &source_t, vector<Point> &destination_t);
 	vector<Point>			GodLikeCode();
 	vector<Point>			readClothingPoints(string filename);
