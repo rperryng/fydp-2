@@ -130,13 +130,14 @@ bool sameSign(int x, int y) {
 void CColorBasics::MapTriangle(
 	vector<Point> &source_t,
 	vector<Point> &destination_t,
-	vector<pair<Point, Point>> cutoffLines
+	vector<pair<Point, Point>> cutoffLines,
+	Mat clothingImage
 ) {
 	// Find bounding rectangle for each triangle
 	Rect source_rect = boundingRect(source_t);
 	Rect destination_rect = boundingRect(destination_t);
 
-	// Offset points by left top corner of the respective rectangles
+	// Offset pointsShirt by left top corner of the respective rectangles
 	Point2f source_triangle_bounded[3];
 	Point2f destination_triangle_bounded[3];
 	Point destination_triangle_bounded_int[3];
@@ -193,7 +194,7 @@ void CColorBasics::MapTriangle(
 
 	//	Apply warpImage to small rectangular patches
 	Mat source_crop;
-	m_clothingImage(source_rect).copyTo(source_crop);
+	clothingImage(source_rect).copyTo(source_crop);
 
 	Mat dest_crop = Mat::zeros(destination_rect.height, destination_rect.width, source_crop.type());
 
@@ -213,6 +214,7 @@ void CColorBasics::MapTriangle(
 
 	cv::multiply(dest_crop, alpha_mask, dest_crop);
 	cv::multiply(m_personImage(destination_rect), Scalar(1.0, 1.0, 1.0, 1.0) - alpha_mask, m_personImage(destination_rect));
+
 	m_personImage(destination_rect) = m_personImage(destination_rect) + dest_crop;
 }
 
@@ -404,7 +406,7 @@ void CColorBasics::StoreBinaryData() {
 	fclose(file);
 }
 
-//Read points from text file
+//Read pointsShirt from text file
 vector<Point> CColorBasics::readClothingPoints(string filename) {
 	vector<Point> points;
 	ifstream ifs(filename.c_str());
@@ -431,7 +433,7 @@ void CColorBasics::Update()
 
 	DepthSpacePoint dspHipJoint = { 0 };
 
-	bool loadBinaryData = true;
+	bool loadBinaryData = false;
 	bool storeBinaryData = false;
 
 	if (loadBinaryData && !m_ranOnceAlready) {
@@ -461,17 +463,31 @@ void CColorBasics::Update()
 		Output("Execution time: %f", (t2 - t1) / double(CLOCKS_PER_SEC) * 1000);
 
 		t1 = clock();
-		vector<Point> personPoints = LandmarkRecognition();
+		LandmarkRecognition();
 		t2 = clock();
 		Output("Execution time: %f", (t2 - t1) / double(CLOCKS_PER_SEC) * 1000);
 
 		t1 = clock();
-		ApplyClothing(personPoints);
-		t2 = clock();
-		Output("Execution time: %f", (t2 - t1) / double(CLOCKS_PER_SEC) * 1000);
+		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
+		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
+		namedWindow("person", WINDOW_NORMAL);
 
+		ApplyShorts();
 		imshow("person", m_personImage);
 		waitKey(0);
+
+		ApplyTshirt();
+
+		t2 = clock();
+		imshow("person", m_personImage);
+		waitKey(0);
+		destroyWindow("person");
+
+		Output("Execution time: %f", (t2 - t1) / double(CLOCKS_PER_SEC) * 1000);
+
+		ColorSpacePoint csp = { 0 };
+		m_pCoordinateMapper->MapCameraPointToColorSpace(m_joints[JointType_SpineBase].Position, &csp);
+		circle(m_personImage, Point(csp.X, csp.Y), 3, RED);
 
 		WCHAR szStatusMessage[64 + MAX_PATH];
 		StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Saved files", NULL);
@@ -578,16 +594,27 @@ Point CColorBasics::GetOffsetForJoint(Joint joint) {
 	DepthSpacePoint dsp = { 0 };
 
 	m_pCoordinateMapper->MapCameraPointToColorSpace(joint.Position, &csp_control);
-
 	m_pCoordinateMapper->MapCameraPointToDepthSpace(joint.Position, &dsp);
 	m_pCoordinateMapper->MapDepthPointToColorSpace(dsp, dGrid((int) dsp.Y, (int) dsp.X), &csp);
 	return Point(csp_control.X - csp.X, csp_control.Y - csp.Y);
 }
 
-Point CColorBasics::findBoundary(Mat matDepth, Point start, bool traverseRight) {
-	for (int x = start.x; (x >= 0 && x < cDepthWidth); (traverseRight ? x++ : x--)) {
-		if (matDepth.at<USHORT>(start.y, x) == 0) {
-			return Point(x, start.y);
+Point CColorBasics::findBoundary(Mat matDepth, Point start, bool traverseRight, float slope) {
+	if (traverseRight) {
+		for (int x = start.x; x < cDepthWidth; x++) {
+			int y = start.y + (slope * (x - start.x));
+
+			if (matDepth.at<USHORT>(y, x) == 0) {
+				return Point(x, y);
+			}
+		}
+	} else {
+		for (int x = start.x; x >= 0; x--) {
+			int y = start.y + (slope * (x - start.x));
+
+			if (matDepth.at<USHORT>(y, x) == 0) {
+				return Point(x, y);
+			}
 		}
 	}
 }
@@ -595,111 +622,93 @@ Point CColorBasics::findBoundary(Mat matDepth, Point start, bool traverseRight) 
 vector<Point> CColorBasics::LandmarkRecognition()
 {
 	Mat matDepth, matDepthRaw, matColor;
-	vector<Point> points(10);
+	vector<Point> pointsShirt(10);
 	ColorSpacePoint csp;
 	DepthSpacePoint dsp;
 	Point maxPoint;
 	Point minPoint;
 	Point offset;
+	Point delta;
 	float slope;
 	int diagonalArr[50];
 	Mat diagonalRoi = Mat(1, 50, DataType<int>::type, &diagonalArr);
 
 	matDepthRaw = Mat(cDepthHeight, cDepthWidth, CV_16UC1, m_depthBuffer, sizeof(UINT16) * cDepthWidth);
-	//cvtColor(matDepthRaw, matDepth, COLOR_GRAY2BGR);
-	//matColor = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer, sizeof(RGBQUAD) * cColorWidth);
+	cvtColor(matDepthRaw, matDepth, COLOR_GRAY2BGR);
+	matColor = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer, sizeof(RGBQUAD) * cColorWidth);
 
 	// Neck
 	dsp = JointToDepthSpacePoint(JointType_Neck);
 	m_skeletalPoints.neck_x = (int) dsp.X;
 	m_skeletalPoints.neck_y = (int) dsp.Y;
-	m_tracePoints.leftNeck = findBoundary(matDepthRaw, Point(m_skeletalPoints.neck_x, m_skeletalPoints.neck_y), false);
+	m_tracePoints.leftNeck = findBoundary(matDepthRaw, Point(m_skeletalPoints.neck_x, m_skeletalPoints.neck_y), false, 0.0f);
 
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y);
 	offset = GetOffsetForJoint(m_joints[JointType_Neck]);
-	points[0] = Point(csp.X, csp.Y) + offset;
-	//circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y), 5, BLUE, FILLED, LINE_8);
+	pointsShirt[0] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y), 5, BLUE, FILLED, LINE_8);
 
-	m_tracePoints.rightNeck = findBoundary(matDepthRaw, Point(m_skeletalPoints.neck_x, m_skeletalPoints.neck_y), true);
+	m_tracePoints.rightNeck = findBoundary(matDepthRaw, Point(m_skeletalPoints.neck_x, m_skeletalPoints.neck_y), true, 0.0f);
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y);
-	points[1] = Point(csp.X, csp.Y) + offset;
-	//circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, BLUE, FILLED, LINE_8);
+	pointsShirt[1] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, BLUE, FILLED, LINE_8);
 
 	// Shoulder Left
 	dsp = JointToDepthSpacePoint(JointType_ShoulderLeft);
 	m_skeletalPoints.leftShoulder_x = (int) dsp.X;
 	m_skeletalPoints.leftShoulder_y = (int) dsp.Y;
-	//rectangle(rawImage, Point(x, y), Point(x - 50, y - 50), Scalar(255, 0, 0), 2);
-	Mat leftShoulderRoi = matDepthRaw(
-		Range(m_skeletalPoints.leftShoulder_y - 50, m_skeletalPoints.leftShoulder_y),
-		Range(m_skeletalPoints.leftShoulder_x - 50, m_skeletalPoints.leftShoulder_x)
-	);
-	// construct diagonal array
-	for (int i = 0; i < 50; i++) {
-		Scalar intensity = leftShoulderRoi.at<UINT16>(i, i);
-		diagonalArr[i] = intensity.val[0];
-	}
-	minMaxLoc(diagonalRoi, NULL, NULL, NULL, &maxPoint);
-	m_tracePoints.leftShoulder = Point(
-		m_skeletalPoints.leftShoulder_x - 50 + maxPoint.x,
-		m_skeletalPoints.leftShoulder_y - 50 + maxPoint.x
+	m_tracePoints.leftShoulder = findBoundary(
+		matDepthRaw,
+		Point(m_skeletalPoints.leftShoulder_x, m_skeletalPoints.leftShoulder_y),
+		false,
+		1.0f
 	);
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y);
 	offset = GetOffsetForJoint(m_joints[JointType_ShoulderLeft]);
-	points[2] = Point(csp.X, csp.Y) + offset;
-	//circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y), 5, BLUE, FILLED, LINE_8);
+	pointsShirt[2] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y), 5, BLUE, FILLED, LINE_8);
 
 	// Right Shoulder
 	dsp = JointToDepthSpacePoint(JointType_ShoulderRight);
 	m_skeletalPoints.rightShoulder_x = (int) dsp.X;
 	m_skeletalPoints.rightShoulder_y = (int) dsp.Y;
-	//rectangle(rawImage, Point(x, y), Point(x + 50, y - 50), Scalar(255, 0, 0), 2);
-	Mat rightShoulderRoi = matDepthRaw(
-		Range(m_skeletalPoints.rightShoulder_y - 50, m_skeletalPoints.rightShoulder_y),
-		Range(m_skeletalPoints.rightShoulder_x, m_skeletalPoints.rightShoulder_x + 50)
-	);
-
-	// construct diagonal array
-	for (int i = 0; i < 50; i++) {
-		Scalar intensity = rightShoulderRoi.at<UINT16>(i, 49 - i);
-		diagonalArr[i] = intensity.val[0];
-	}
-	minMaxLoc(diagonalRoi, NULL, NULL, NULL, &maxPoint);
-	m_tracePoints.rightShoulder = Point(
-		m_skeletalPoints.rightShoulder_x + 50 - maxPoint.x,
-		m_skeletalPoints.rightShoulder_y - 50 + maxPoint.x
+	m_tracePoints.rightShoulder = findBoundary(
+		matDepthRaw,
+		Point(m_skeletalPoints.rightShoulder_x, m_skeletalPoints.rightShoulder_y),
+		true,
+		-1.0f
 	);
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y);
 	offset = GetOffsetForJoint(m_joints[JointType_ShoulderRight]);
-	points[3] = Point(csp.X, csp.Y) + offset;
-	//circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y), 5, BLUE, FILLED, LINE_8);
+	pointsShirt[3] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y), 5, BLUE, FILLED, LINE_8);
 
 	// Left Hip
 	dsp = JointToDepthSpacePoint(JointType_HipLeft);
 	m_skeletalPoints.leftHip_x = (int) dsp.X;
 	m_skeletalPoints.leftHip_y = (int) dsp.Y;
 
-	m_tracePoints.leftHip = findBoundary(matDepthRaw, Point(m_skeletalPoints.leftHip_x, m_skeletalPoints.leftHip_y), false);
+	m_tracePoints.leftHip = findBoundary(matDepthRaw, Point(m_skeletalPoints.leftHip_x, m_skeletalPoints.leftHip_y), false, 0.0f);
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y);
 	offset = GetOffsetForJoint(m_joints[JointType_HipLeft]);
-	points[8] = Point(csp.X, csp.Y) + offset;
-	//circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, BLUE, FILLED, LINE_8);
+	pointsShirt[8] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, BLUE, FILLED, LINE_8);
 
 	// Right Hip
 	dsp = JointToDepthSpacePoint(JointType_HipRight);
 	m_skeletalPoints.rightHip_x = (int) dsp.X;
 	m_skeletalPoints.rightHip_y = (int) dsp.Y;
-	m_tracePoints.rightHip = findBoundary(matDepthRaw, Point(m_skeletalPoints.rightHip_x, m_skeletalPoints.rightHip_y), true);
+	m_tracePoints.rightHip = findBoundary(matDepthRaw, Point(m_skeletalPoints.rightHip_x, m_skeletalPoints.rightHip_y), true, 0.0f);
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y);
 	offset = GetOffsetForJoint(m_joints[JointType_HipRight]);
-	points[9] = Point(csp.X, csp.Y) + offset;
-	//circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, BLUE, FILLED, LINE_8);
+	pointsShirt[9] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, BLUE, FILLED, LINE_8);
 
 	dsp = JointToDepthSpacePoint(JointType_ElbowLeft);
 	m_skeletalPoints.leftElbow_x = (int) dsp.X;
@@ -715,28 +724,22 @@ vector<Point> CColorBasics::LandmarkRecognition()
 		(m_skeletalPoints.leftElbow_y + m_skeletalPoints.leftShoulder_y) / 2
 	);
 	slope = -((float) (m_skeletalPoints.leftElbow_x - m_skeletalPoints.leftShoulder_x)) / (m_skeletalPoints.leftElbow_y - m_skeletalPoints.leftShoulder_y);
-	for (int x = leftBicep.x; x >= 0; x--) {
-		int y = leftBicep.y + (slope * (x - leftBicep.x));
-
-		if (matDepthRaw.at<USHORT>(y, x) == 0) {
-			m_tracePoints.leftOuterHem = Point(x, y);
-			int deltaX = leftBicep.x - x;
-			int deltaY = leftBicep.y - y;
-			m_tracePoints.leftInnerHem = Point(leftBicep.x + deltaX, leftBicep.y + deltaY);
-			break;
-		}
-	}
+	m_tracePoints.leftOuterHem = findBoundary(matDepthRaw, leftBicep, false, slope);
+	delta = leftBicep - m_tracePoints.leftOuterHem;
+	m_tracePoints.leftInnerHem = leftBicep + delta;
 
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftOuterHem.x, m_tracePoints.leftOuterHem.y);
 	offset = GetOffsetForJoint(m_joints[JointType_ElbowLeft]);
-	points[4] = Point(csp.X, csp.Y) + offset;
-	//circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.leftOuterHem.x, m_tracePoints.leftOuterHem.y), 5, BLUE, FILLED, LINE_8);
+
+
+	pointsShirt[4] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, m_tracePoints.leftOuterHem, 5, BLUE, FILLED, LINE_8);
 
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftInnerHem.x, m_tracePoints.leftInnerHem.y);
-	points[6] = Point(csp.X, csp.Y) + offset;
-	//circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.leftInnerHem.x, m_tracePoints.leftInnerHem.y), 5, BLUE, FILLED, LINE_8);
+	pointsShirt[6] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, m_tracePoints.leftInnerHem, 5, BLUE, FILLED, LINE_8);
 
 	// Right Hem
 	Point rightBicep = Point(
@@ -744,49 +747,151 @@ vector<Point> CColorBasics::LandmarkRecognition()
 		(m_skeletalPoints.rightElbow_y + m_skeletalPoints.rightShoulder_y) / 2
 	);
 	slope = -((float) (m_skeletalPoints.rightElbow_x - m_skeletalPoints.rightShoulder_x)) / (m_skeletalPoints.rightElbow_y - m_skeletalPoints.rightShoulder_y);
-	for (int x = rightBicep.x; x < cDepthWidth; x++) {
-		int y = rightBicep.y + (slope * (x - rightBicep.x));
+	m_tracePoints.rightOuterHem = findBoundary(matDepthRaw, rightBicep, true, slope);
+	delta = rightBicep - m_tracePoints.rightOuterHem;
+	m_tracePoints.rightInnerHem = rightBicep + delta;
 
-		if (matDepthRaw.at<USHORT>(y, x) == 0) {
-			m_tracePoints.rightOuterHem = Point(x, y);
-			int deltaX = rightBicep.x - x;
-			int deltaY = rightBicep.y - y;
-			m_tracePoints.rightInnerHem = Point(rightBicep.x + deltaX, rightBicep.y + deltaY);
+	csp = DepthSpaceToColorSpace(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y);
+	offset = GetOffsetForJoint(m_joints[JointType_ElbowRight]);
+	pointsShirt[5] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y), 5, BLUE, FILLED, LINE_8);
+
+	csp = DepthSpaceToColorSpace(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y);
+	pointsShirt[7] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y), 5, BLUE, FILLED, LINE_8);
+
+
+
+	// PANTS
+	// POGGERS
+	// PANTS
+	vector<Point> pointsPants(9);
+
+	// Left Hip
+	dsp = JointToDepthSpacePoint(JointType_HipLeft);
+	m_skeletalPoints.leftHip_x = (int)dsp.X + 5;
+	m_skeletalPoints.leftHip_y = (int)dsp.Y - 20;
+
+	m_tracePoints.leftHip = findBoundary(matDepthRaw, Point(m_skeletalPoints.leftHip_x, m_skeletalPoints.leftHip_y), false, 0.0f);
+	csp = DepthSpaceToColorSpace(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y);
+	offset = GetOffsetForJoint(m_joints[JointType_HipLeft]);
+	pointsPants[0] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, GREEN, FILLED, LINE_8);
+
+	// Right Hip
+	dsp = JointToDepthSpacePoint(JointType_HipRight);
+	m_skeletalPoints.rightHip_x = (int)dsp.X - 5;
+	m_skeletalPoints.rightHip_y = (int)dsp.Y - 20;
+	m_tracePoints.rightHip = findBoundary(matDepthRaw, Point(m_skeletalPoints.rightHip_x, m_skeletalPoints.rightHip_y), true, 0.0f);
+	csp = DepthSpaceToColorSpace(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y);
+	offset = GetOffsetForJoint(m_joints[JointType_HipRight]);
+	pointsPants[1] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, GREEN, FILLED, LINE_8);
+
+	// Crotch
+	dsp = JointToDepthSpacePoint(JointType_SpineBase);
+	m_skeletalPoints.crotch_x = (int)dsp.X;
+	m_skeletalPoints.crotch_y = (int)dsp.Y;
+	for (int y = m_skeletalPoints.crotch_y; y < cDepthHeight; y++) {
+		if (matDepthRaw.at<USHORT>(y, m_skeletalPoints.crotch_x) == 0) {
+			m_tracePoints.crotch = Point(m_skeletalPoints.crotch_x, y);
 			break;
 		}
 	}
 
-	csp = DepthSpaceToColorSpace(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y);
-	offset = GetOffsetForJoint(m_joints[JointType_ElbowRight]);
-	points[5] = Point(csp.X, csp.Y) + offset;
-	//circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y), 5, BLUE, FILLED, LINE_8);
+	csp = DepthSpaceToColorSpace(m_tracePoints.crotch.x, m_tracePoints.crotch.y);
+	offset = GetOffsetForJoint(m_joints[JointType_SpineBase]);
+	pointsPants[3] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, m_tracePoints.crotch, 5, GREEN, FILLED, LINE_8);
 
-	csp = DepthSpaceToColorSpace(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y);
-	points[7] = Point(csp.X, csp.Y) + offset;
-	//circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	//circle(matDepth, Point(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y), 5, BLUE, FILLED, LINE_8);
 
-	//namedWindow("depthFile Color", WINDOW_NORMAL);
-	//imshow("depthFile Color", matColor);
+	// Left Knee
+	dsp = JointToDepthSpacePoint(JointType_KneeLeft);
+	m_skeletalPoints.leftKnee_x = (int) dsp.X;
+	m_skeletalPoints.leftKnee_y = (int) dsp.Y;
+	slope = -((float) (m_skeletalPoints.leftHip_x - m_skeletalPoints.leftKnee_x)) / (m_skeletalPoints.leftHip_y - m_skeletalPoints.leftKnee_y);
+	Point pointLeftKnee(m_skeletalPoints.leftKnee_x, m_skeletalPoints.leftKnee_y);
+	m_tracePoints.leftOuterKnee = findBoundary(matDepthRaw, pointLeftKnee, false, slope);
+	m_tracePoints.leftInnerKnee = findBoundary(matDepthRaw, pointLeftKnee, true, slope);
+	
+	csp = DepthSpaceToColorSpace(m_tracePoints.leftOuterKnee.x, m_tracePoints.leftOuterKnee.y);
+	offset = GetOffsetForJoint(m_joints[JointType_KneeLeft]);
+	pointsPants[5] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, m_tracePoints.leftOuterKnee, 5, GREEN, FILLED, LINE_8);
 
-	//namedWindow("depthFile", WINDOW_NORMAL);
-	//imshow("depthFile", matDepth);
+	csp = DepthSpaceToColorSpace(m_tracePoints.leftInnerKnee.x, m_tracePoints.leftInnerKnee.y);
+	offset = GetOffsetForJoint(m_joints[JointType_KneeLeft]);
+	pointsPants[6] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, m_tracePoints.leftInnerKnee, 5, GREEN, FILLED, LINE_8);
 
-	//waitKey(0);
+	// Right Knee
+	dsp = JointToDepthSpacePoint(JointType_KneeRight);
+	m_skeletalPoints.rightKnee_x = (int)dsp.X;
+	m_skeletalPoints.rightKnee_y = (int)dsp.Y;
+	slope = -((float)(m_skeletalPoints.rightHip_x - m_skeletalPoints.rightKnee_x)) / (m_skeletalPoints.rightHip_y - m_skeletalPoints.rightKnee_y);
+	Point rightKnee(m_skeletalPoints.rightKnee_x, m_skeletalPoints.rightKnee_y);
+	m_tracePoints.rightOuterKnee = findBoundary(matDepthRaw, rightKnee, true, slope);
+	m_tracePoints.rightInnerKnee = findBoundary(matDepthRaw, rightKnee, false, slope);
+	
+	csp = DepthSpaceToColorSpace(m_tracePoints.rightOuterKnee.x, m_tracePoints.rightOuterKnee.y);
+	offset = GetOffsetForJoint(m_joints[JointType_KneeRight]);
+	pointsPants[8] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, m_tracePoints.rightOuterKnee, 5, GREEN, FILLED, LINE_8);
 
-	return points;
+	csp = DepthSpaceToColorSpace(m_tracePoints.rightInnerKnee.x, m_tracePoints.rightInnerKnee.y);
+	offset = GetOffsetForJoint(m_joints[JointType_KneeRight]);
+	pointsPants[7] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, m_tracePoints.rightInnerKnee, 5, GREEN, FILLED, LINE_8);
+
+
+	// Left Quad
+	Point quadLeft = Point(
+		(m_skeletalPoints.leftHip_x + m_skeletalPoints.leftKnee_x) / 2,
+		(m_skeletalPoints.leftHip_y + m_skeletalPoints.leftKnee_y) / 2
+	);
+	m_tracePoints.leftOuterQuad = findBoundary(matDepthRaw, quadLeft, false, 0.0f);
+	csp = DepthSpaceToColorSpace(m_tracePoints.leftOuterQuad.x, m_tracePoints.leftOuterQuad.y);
+	offset = GetOffsetForJoint(m_joints[JointType_KneeLeft]);
+	pointsPants[2] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, m_tracePoints.leftOuterQuad, 5, GREEN, FILLED, LINE_8);
+
+	// Right Quad
+	Point quadRight = Point(
+		(m_skeletalPoints.rightHip_x + m_skeletalPoints.rightKnee_x) / 2,
+		(m_skeletalPoints.rightHip_y + m_skeletalPoints.rightKnee_y) / 2
+	);
+	m_tracePoints.rightOuterQuad = findBoundary(matDepthRaw, quadRight, true, 0.0f);
+	csp = DepthSpaceToColorSpace(m_tracePoints.rightOuterQuad.x, m_tracePoints.rightOuterQuad.y);
+	offset = GetOffsetForJoint(m_joints[JointType_KneeRight]);
+	pointsPants[4] = Point(csp.X, csp.Y) + offset;
+	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	circle(matDepth, m_tracePoints.rightOuterQuad, 5, GREEN, FILLED, LINE_8);
+
+	namedWindow("depth", WINDOW_NORMAL);
+	imshow("depth", matDepth);
+	waitKey(0);
+	destroyWindow("depth");
+	
+	m_personUpperBodyPoints = pointsShirt;
+	m_personLowerBodyPoints = pointsPants;
+	return pointsShirt;
 }
 
 bool vectorContains(vector<Point> container, Point value) {
 	return find(container.begin(), container.end(), value) != container.end();
 }
 
-void CColorBasics::ApplyClothing(vector<Point> personPoints) {
-	m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
-	//cvtColor(m_personImage, m_personImage, CV_BGRA2BGR);
-	m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
-
+void CColorBasics::ApplyTshirt() {
 	int triangles[8][3] = {
 		{ 2, 4, 6 },
 		{ 2, 0, 6 },
@@ -805,7 +910,7 @@ void CColorBasics::ApplyClothing(vector<Point> personPoints) {
 		vector<Point> source_t, dest_t;
 		for (int j = 0; j < 3; j++) {
 			source_t.push_back(m_shirtPoints[triangles[i][j]]);
-			dest_t.push_back(personPoints[triangles[i][j]]);
+			dest_t.push_back(m_personUpperBodyPoints[triangles[i][j]]);
 		}
 
 		sourceTriangles.push_back(source_t);
@@ -830,7 +935,7 @@ void CColorBasics::ApplyClothing(vector<Point> personPoints) {
 			}
 		}
 
-		MapTriangle(source_t, destination_t, cutoffLines);
+		MapTriangle(source_t, destination_t, cutoffLines, m_shirtImage);
 
 		for (int j = 0; j <= i; j++) {
 			vector<Point> currentTriangle = destinationTriangles[j];
@@ -846,7 +951,82 @@ void CColorBasics::ApplyClothing(vector<Point> personPoints) {
 		//	pair<Point, Point> cutoffLine = cutoffLines[j];
 		//	line(m_personImage, cutoffLine.first, cutoffLine.second, GREEN, 2);
 		//}
+	}
+}
 
+void CColorBasics::ApplyShorts() {
+	const int numTrianglesShorts = 7;
+	int triangles[numTrianglesShorts][3] = {
+		{ 0, 1, 3 },
+		{ 0, 2, 3 },
+		{ 1, 3, 4 },
+		{ 2, 5, 3 },
+		{ 3, 5, 6 },
+		{ 3, 7, 8 },
+		{ 3, 4, 8 }
+	};
+
+	vector<vector<Point>> sourceTriangles;
+	vector<vector<Point>> destinationTriangles;
+
+	for (int i = 0; i < numTrianglesShorts; i++) {
+		vector<Point> source_t, dest_t;
+		for (int j = 0; j < 3; j++) {
+			source_t.push_back(m_shortsPoints[triangles[i][j]]);
+			dest_t.push_back(m_personLowerBodyPoints[triangles[i][j]]);
+		}
+
+		sourceTriangles.push_back(source_t);
+		destinationTriangles.push_back(dest_t);
+	}
+
+	//for (int i = 0; i < destinationTriangles.size(); i++) {
+	//	vector<Point> triangle = destinationTriangles[i];
+
+	//	for (int j = 0; j < triangle.size(); j++) {
+	//		Point start = triangle[j];
+	//		Point end = (j == triangle.size() - 1) ? triangle[0] : triangle[j + 1];
+	//		line(m_personImage, start, end, RED);
+	//	}
+	//}
+
+	vector<pair<Point, Point>> allCutoffLines;
+
+	for (int i = 0; i < numTrianglesShorts; i++) {
+		vector<Point> source_t = sourceTriangles[i];
+		vector<Point> destination_t = destinationTriangles[i];
+		vector<pair<Point, Point>> cutoffLines;
+
+		for (int j = 0; j < numTrianglesShorts; j++) {
+			if (i == j) continue;
+			vector<Point> other_t = destinationTriangles[j];
+
+			for (int k = 0; k < destination_t.size(); k++) {
+				Point start = destination_t[k];
+				Point end = destination_t[(k == destination_t.size() - 1) ? 0 : k + 1];
+				if (vectorContains(other_t, start) && vectorContains(other_t, end)) {
+					cutoffLines.push_back(pair<Point, Point>(start, end));
+					allCutoffLines.push_back(pair<Point, Point>(start, end));
+				}
+			}
+		}
+
+		MapTriangle(source_t, destination_t, cutoffLines, m_shortsImage);
+
+		for (int j = 0; j <= i; j++) {
+			vector<Point> currentTriangle = destinationTriangles[j];
+			for (int k = 0; k < currentTriangle.size(); k++) {
+				Point start = currentTriangle[k];
+				Point end = (k == currentTriangle.size() - 1) ? currentTriangle[0] : currentTriangle[k + 1];
+				//line(m_personImage, start, end, RED, 2);
+			}
+		}
+	}
+
+	// Draw cutoff lines
+	for (int j = 0; j < allCutoffLines.size(); j++) {
+		pair<Point, Point> cutoffLine = allCutoffLines[j];
+		//line(m_personImage, cutoffLine.first, cutoffLine.second, GREEN, 2);
 	}
 }
 
@@ -1070,9 +1250,13 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
     {
         case WM_INITDIALOG:
         {
-			m_clothingImage = imread("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\black_tshirt_transparent.png", IMREAD_UNCHANGED);
-			m_clothingImage.convertTo(m_clothingImage, CV_32F, 1.0/255.0f);
-			m_shirtPoints = readClothingPoints("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\black_tshirt.jpg.txt");
+			m_shirtImage = imread("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\superman_tshirt_transparent.png", IMREAD_UNCHANGED);
+			m_shirtImage.convertTo(m_shirtImage, CV_32F, 1.0/255.0f);
+			m_shirtPoints = readClothingPoints("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\superman_tshirt.jpg.txt");
+
+			m_shortsImage = imread("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\red_shorts_transparent.png", IMREAD_UNCHANGED);
+			m_shortsImage.convertTo(m_shortsImage, CV_32F, 1.0 / 255.0f);
+			m_shortsPoints = readClothingPoints("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\red_shorts.jpg.txt");
 
             // Bind application window handle
             m_hWnd = hWnd;

@@ -33,6 +33,12 @@ struct skeletalBodyPoints_t {
 	int leftElbow_x;
 	int rightElbow_y;
 	int rightElbow_x;
+	int crotch_x;
+	int crotch_y;
+	int leftKnee_x;
+	int leftKnee_y;
+	int rightKnee_x;
+	int rightKnee_y;
 };
 
 struct tracePoints_t {
@@ -46,6 +52,14 @@ struct tracePoints_t {
 	Point rightInnerHem;
 	Point leftHip;
 	Point rightHip;
+
+	Point crotch;
+	Point leftOuterKnee;
+	Point leftInnerKnee;
+	Point rightOuterKnee;
+	Point rightInnerKnee;
+	Point leftOuterQuad;
+	Point rightOuterQuad;
 };
 
 class CColorBasics
@@ -103,7 +117,10 @@ private:
     DWORD                   m_nFramesSinceUpdate;
     bool                    m_bSaveScreenshot;
 	bool					m_ranOnceAlready = false;
+	vector<Point>			m_personUpperBodyPoints;
+	vector<Point>			m_personLowerBodyPoints;
 	vector<Point>			m_shirtPoints;
+	vector<Point>			m_shortsPoints;
 
 	UINT16*					m_depthBuffer;
 	RGBQUAD*				m_colorBuffer;
@@ -113,7 +130,8 @@ private:
 	tracePoints_t			m_tracePoints;
 
 	Mat						m_personImage;
-	Mat						m_clothingImage;
+	Mat						m_shirtImage;
+	Mat						m_shortsImage;
 	
     // Current Kinect
     IKinectSensor*          m_pKinectSensor;
@@ -140,16 +158,18 @@ private:
 	void					UpdateDepth(UINT* capacity, int* width, int* height);
 	void					UpdateBody();
 	void					DisjointEdgeDetection(DepthSpacePoint dsp);
-	void					MapTriangle(vector<Point> &source_t, vector<Point> &destination_t, vector<pair<Point, Point>> cutoffLines);
-	void					ApplyClothing(vector<Point> personPoints);
+	void					MapTriangle(vector<Point> &source_t, vector<Point> &destination_t, vector<pair<Point, Point>> cutoffLines, Mat clothingImage);
+	void					ApplyTshirt();
+	void					ApplyShorts();
 	vector<Point>			LandmarkRecognition();
 	vector<Point>			readClothingPoints(string filename);
-	Point					findBoundary(Mat matDepth, Point startPoint, bool traverseRight);
+	Point					findBoundary(Mat matDepth, Point startPoint, bool traverseRight, float slope);
 
 	UINT16					dGrid(int y, int x);
 	DepthSpacePoint			JointToDepthSpacePoint(JointType jointType);
 	ColorSpacePoint			DepthSpaceToColorSpace(int x, int y);
 	Point					GetOffsetForJoint(Joint joint);
+	Point					GetOffsetForPosition(CameraSpacePoint csp);
 
 	void Output(const char* szFormat, ...);
 
