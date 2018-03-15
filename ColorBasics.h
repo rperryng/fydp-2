@@ -144,6 +144,7 @@ private:
 	void					ApplyClothing(vector<Point> personPoints);
 	vector<Point>			LandmarkRecognition();
 	vector<Point>			readClothingPoints(string filename);
+	Point					findBoundary(Mat matDepth, Point startPoint, bool traverseRight);
 
 	UINT16					dGrid(int y, int x);
 	DepthSpacePoint			JointToDepthSpacePoint(JointType jointType);
