@@ -148,10 +148,7 @@ void CColorBasics::MapTriangle(
 	}
 
 	//	Get mask by filling triangle
-	//Mat mask = Mat::zeros(destination_rect.height, destination_rect.width, CV_32FC4);
-	//cv::fillConvexPoly(mask, destination_triangle_bounded_int, 3, Scalar(1.0, 1.0, 1.0, 1.0));
 	vector<Mat> masks;
-
 	for (int i = 0; i < cutoffLines.size(); i++) {
 		pair<Point, Point> cutoffLine = cutoffLines[i];
 		Point thirdPoint;
@@ -169,10 +166,9 @@ void CColorBasics::MapTriangle(
 
 		for (int j = 0; j < corners.size(); j++) {
 			Point corner = corners[j];
-			circle(m_personImage, corner, 5, GREEN, FILLED, LINE_8);
+			//circle(m_personImage, corner, 5, GREEN, FILLED, LINE_8);
 
 			int cornerDirection = directionOfPoint(cutoffLine, corner);
-			Output("Corner direction [%d] is %d, sameSign: %d", j, cornerDirection, sameSign(thirdPointDirection, cornerDirection));
 			if (cornerDirection != 0 && !sameSign(thirdPointDirection, cornerDirection)) {
 				foundCorner = true;
 				maskCorner = corner;
@@ -187,15 +183,12 @@ void CColorBasics::MapTriangle(
 				cutoffLine.second - origin,
 				maskCorner - origin
 			};
-			cv::fillConvexPoly(mask, maskTriangle, 3, Scalar(1.0, 1.0, 1.0, 1.0));
-			masks.push_back(Scalar(1.0, 1.0, 1.0, 1.0) - mask);
-		}
-	}
 
-	for (int i = 0; i < masks.size(); i++) {
-		Mat mask = masks[i];
-		namedWindow(to_string(i), WINDOW_NORMAL);
-		imshow(to_string(i), mask);
+			cv::fillConvexPoly(mask, maskTriangle, 3, Scalar(1.0, 1.0, 1.0, 1.0));
+			mask = Scalar(1.0, 1.0, 1.0, 1.0) - mask;
+			cv::line(mask, cutoffLine.first - origin, cutoffLine.second - origin, Scalar(1.0, 1.0, 1.0, 1.0), 1);
+			masks.push_back(mask);
+		}
 	}
 
 	//	Apply warpImage to small rectangular patches
@@ -221,7 +214,6 @@ void CColorBasics::MapTriangle(
 	cv::multiply(dest_crop, alpha_mask, dest_crop);
 	cv::multiply(m_personImage(destination_rect), Scalar(1.0, 1.0, 1.0, 1.0) - alpha_mask, m_personImage(destination_rect));
 	m_personImage(destination_rect) = m_personImage(destination_rect) + dest_crop;
-
 }
 
 void CColorBasics::Output(const char* szFormat, ...)
@@ -834,14 +826,15 @@ void CColorBasics::ApplyClothing(vector<Point> personPoints) {
 			for (int k = 0; k < currentTriangle.size(); k++) {
 				Point start = currentTriangle[k];
 				Point end = (k == currentTriangle.size() - 1) ? currentTriangle[0] : currentTriangle[k + 1];
-				line(m_personImage, start, end, RED, 2);
+				//line(m_personImage, start, end, RED, 2);
 			}
 		}
 
-		for (int j = 0; j < cutoffLines.size(); j++) {
-			pair<Point, Point> cutoffLine = cutoffLines[j];
-			line(m_personImage, cutoffLine.first, cutoffLine.second, GREEN, 2);
-		}
+		// Draw cutoff lines
+		//for (int j = 0; j < cutoffLines.size(); j++) {
+		//	pair<Point, Point> cutoffLine = cutoffLines[j];
+		//	line(m_personImage, cutoffLine.first, cutoffLine.second, GREEN, 2);
+		//}
 
 		namedWindow("person", WINDOW_NORMAL);
 		imshow("person", m_personImage);
