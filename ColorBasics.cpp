@@ -622,7 +622,7 @@ Point CColorBasics::findBoundary(Mat matDepth, Point start, bool traverseRight, 
 vector<Point> CColorBasics::LandmarkRecognition()
 {
 	Mat matDepth, matDepthRaw, matColor;
-	vector<Point> pointsShirt(10);
+	vector<Point> pointsShirt(12);
 	ColorSpacePoint csp;
 	DepthSpacePoint dsp;
 	Point maxPoint;
@@ -646,14 +646,14 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y);
 	offset = GetOffsetForJoint(m_joints[JointType_Neck]);
 	pointsShirt[0] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y), 5, BLUE, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, Point(m_tracePoints.leftNeck.x, m_tracePoints.leftNeck.y), 5, BLUE, FILLED, LINE_8);
 
 	m_tracePoints.rightNeck = findBoundary(matDepthRaw, Point(m_skeletalPoints.neck_x, m_skeletalPoints.neck_y), true, 0.0f);
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y);
 	pointsShirt[1] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, BLUE, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, Point(m_tracePoints.rightNeck.x, m_tracePoints.rightNeck.y), 5, BLUE, FILLED, LINE_8);
 
 	// Shoulder Left
 	dsp = JointToDepthSpacePoint(JointType_ShoulderLeft);
@@ -668,8 +668,8 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y);
 	offset = GetOffsetForJoint(m_joints[JointType_ShoulderLeft]);
 	pointsShirt[2] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y), 5, BLUE, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, Point(m_tracePoints.leftShoulder.x, m_tracePoints.leftShoulder.y), 5, BLUE, FILLED, LINE_8);
 
 	// Right Shoulder
 	dsp = JointToDepthSpacePoint(JointType_ShoulderRight);
@@ -684,8 +684,8 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y);
 	offset = GetOffsetForJoint(m_joints[JointType_ShoulderRight]);
 	pointsShirt[3] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y), 5, BLUE, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, Point(m_tracePoints.rightShoulder.x, m_tracePoints.rightShoulder.y), 5, BLUE, FILLED, LINE_8);
 
 	// Left Hip
 	dsp = JointToDepthSpacePoint(JointType_HipLeft);
@@ -695,9 +695,9 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	m_tracePoints.leftHip = findBoundary(matDepthRaw, Point(m_skeletalPoints.leftHip_x, m_skeletalPoints.leftHip_y), false, 0.0f);
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y);
 	offset = GetOffsetForJoint(m_joints[JointType_HipLeft]);
-	pointsShirt[8] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, BLUE, FILLED, LINE_8);
+	pointsShirt[10] = Point(csp.X, csp.Y) + offset;
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, BLUE, FILLED, LINE_8);
 
 	// Right Hip
 	dsp = JointToDepthSpacePoint(JointType_HipRight);
@@ -706,9 +706,9 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	m_tracePoints.rightHip = findBoundary(matDepthRaw, Point(m_skeletalPoints.rightHip_x, m_skeletalPoints.rightHip_y), true, 0.0f);
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y);
 	offset = GetOffsetForJoint(m_joints[JointType_HipRight]);
-	pointsShirt[9] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, BLUE, FILLED, LINE_8);
+	pointsShirt[11] = Point(csp.X, csp.Y) + offset;
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, BLUE, FILLED, LINE_8);
 
 	dsp = JointToDepthSpacePoint(JointType_ElbowLeft);
 	m_skeletalPoints.leftElbow_x = (int) dsp.X;
@@ -733,13 +733,13 @@ vector<Point> CColorBasics::LandmarkRecognition()
 
 
 	pointsShirt[4] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, m_tracePoints.leftOuterHem, 5, BLUE, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, m_tracePoints.leftOuterHem, 5, BLUE, FILLED, LINE_8);
 
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftInnerHem.x, m_tracePoints.leftInnerHem.y);
 	pointsShirt[6] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, m_tracePoints.leftInnerHem, 5, BLUE, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, m_tracePoints.leftInnerHem, 5, BLUE, FILLED, LINE_8);
 
 	// Right Hem
 	Point rightBicep = Point(
@@ -754,13 +754,13 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y);
 	offset = GetOffsetForJoint(m_joints[JointType_ElbowRight]);
 	pointsShirt[5] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y), 5, BLUE, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, Point(m_tracePoints.rightOuterHem.x, m_tracePoints.rightOuterHem.y), 5, BLUE, FILLED, LINE_8);
 
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y);
 	pointsShirt[7] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y), 5, BLUE, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, Point(m_tracePoints.rightInnerHem.x, m_tracePoints.rightInnerHem.y), 5, BLUE, FILLED, LINE_8);
 
 
 
@@ -777,9 +777,10 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	m_tracePoints.leftHip = findBoundary(matDepthRaw, Point(m_skeletalPoints.leftHip_x, m_skeletalPoints.leftHip_y), false, 0.0f);
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y);
 	offset = GetOffsetForJoint(m_joints[JointType_HipLeft]);
+	pointsShirt[8] = Point(csp.X, csp.Y) + offset;
 	pointsPants[0] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, GREEN, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, Point(m_tracePoints.leftHip.x, m_tracePoints.leftHip.y), 5, GREEN, FILLED, LINE_8);
 
 	// Right Hip
 	dsp = JointToDepthSpacePoint(JointType_HipRight);
@@ -788,9 +789,10 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	m_tracePoints.rightHip = findBoundary(matDepthRaw, Point(m_skeletalPoints.rightHip_x, m_skeletalPoints.rightHip_y), true, 0.0f);
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y);
 	offset = GetOffsetForJoint(m_joints[JointType_HipRight]);
+	pointsShirt[9] = Point(csp.X, csp.Y) + offset;
 	pointsPants[1] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, GREEN, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, Point(m_tracePoints.rightHip.x, m_tracePoints.rightHip.y), 5, GREEN, FILLED, LINE_8);
 
 	// Crotch
 	dsp = JointToDepthSpacePoint(JointType_SpineBase);
@@ -806,8 +808,8 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	csp = DepthSpaceToColorSpace(m_tracePoints.crotch.x, m_tracePoints.crotch.y);
 	offset = GetOffsetForJoint(m_joints[JointType_SpineBase]);
 	pointsPants[3] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, m_tracePoints.crotch, 5, GREEN, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, m_tracePoints.crotch, 5, GREEN, FILLED, LINE_8);
 
 
 	// Left Knee
@@ -822,14 +824,14 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftOuterKnee.x, m_tracePoints.leftOuterKnee.y);
 	offset = GetOffsetForJoint(m_joints[JointType_KneeLeft]);
 	pointsPants[5] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, m_tracePoints.leftOuterKnee, 5, GREEN, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, m_tracePoints.leftOuterKnee, 5, GREEN, FILLED, LINE_8);
 
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftInnerKnee.x, m_tracePoints.leftInnerKnee.y);
 	offset = GetOffsetForJoint(m_joints[JointType_KneeLeft]);
 	pointsPants[6] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, m_tracePoints.leftInnerKnee, 5, GREEN, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, m_tracePoints.leftInnerKnee, 5, GREEN, FILLED, LINE_8);
 
 	// Right Knee
 	dsp = JointToDepthSpacePoint(JointType_KneeRight);
@@ -843,14 +845,14 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightOuterKnee.x, m_tracePoints.rightOuterKnee.y);
 	offset = GetOffsetForJoint(m_joints[JointType_KneeRight]);
 	pointsPants[8] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, m_tracePoints.rightOuterKnee, 5, GREEN, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, m_tracePoints.rightOuterKnee, 5, GREEN, FILLED, LINE_8);
 
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightInnerKnee.x, m_tracePoints.rightInnerKnee.y);
 	offset = GetOffsetForJoint(m_joints[JointType_KneeRight]);
 	pointsPants[7] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, m_tracePoints.rightInnerKnee, 5, GREEN, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, m_tracePoints.rightInnerKnee, 5, GREEN, FILLED, LINE_8);
 
 
 	// Left Quad
@@ -862,8 +864,8 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	csp = DepthSpaceToColorSpace(m_tracePoints.leftOuterQuad.x, m_tracePoints.leftOuterQuad.y);
 	offset = GetOffsetForJoint(m_joints[JointType_KneeLeft]);
 	pointsPants[2] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, m_tracePoints.leftOuterQuad, 5, GREEN, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, m_tracePoints.leftOuterQuad, 5, GREEN, FILLED, LINE_8);
 
 	// Right Quad
 	Point quadRight = Point(
@@ -874,8 +876,8 @@ vector<Point> CColorBasics::LandmarkRecognition()
 	csp = DepthSpaceToColorSpace(m_tracePoints.rightOuterQuad.x, m_tracePoints.rightOuterQuad.y);
 	offset = GetOffsetForJoint(m_joints[JointType_KneeRight]);
 	pointsPants[4] = Point(csp.X, csp.Y) + offset;
-	circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
-	circle(matDepth, m_tracePoints.rightOuterQuad, 5, GREEN, FILLED, LINE_8);
+	// circle(matColor, Point(csp.X, csp.Y) + offset, 5, BLUE, FILLED, LINE_8);
+	// circle(matDepth, m_tracePoints.rightOuterQuad, 5, GREEN, FILLED, LINE_8);
 
 	namedWindow("depth", WINDOW_NORMAL);
 	imshow("depth", matDepth);
@@ -892,7 +894,8 @@ bool vectorContains(vector<Point> container, Point value) {
 }
 
 void CColorBasics::ApplyTshirt() {
-	int triangles[8][3] = {
+	const int numTrianglesShirts = 12;
+	int triangles[numTrianglesShirts][3] = {
 		{ 2, 4, 6 },
 		{ 2, 0, 6 },
 		{ 0, 1, 6 },
@@ -900,13 +903,17 @@ void CColorBasics::ApplyTshirt() {
 		{ 1, 3, 7 },
 		{ 3, 5, 7 },
 		{ 6, 8, 9 },
-		{ 6, 7, 9 }
+		{ 6, 7, 9 },
+		{ 4, 6, 8 },
+		{ 5, 7, 9 },
+		{ 8, 9, 10 },
+		{ 9, 10, 11 }
 	};
 
 	vector<vector<Point>> sourceTriangles;
 	vector<vector<Point>> destinationTriangles;
 
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < numTrianglesShirts; i++) {
 		vector<Point> source_t, dest_t;
 		for (int j = 0; j < 3; j++) {
 			source_t.push_back(m_shirtPoints[triangles[i][j]]);
@@ -917,12 +924,13 @@ void CColorBasics::ApplyTshirt() {
 		destinationTriangles.push_back(dest_t);
 	}
 
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < numTrianglesShirts; i++) {
 		vector<Point> source_t = sourceTriangles[i];
 		vector<Point> destination_t = destinationTriangles[i];
 		vector<pair<Point, Point>> cutoffLines;
+		vector<pair<Point, Point>> allCutoffLines;
 
-		for (int j = 0; j < 8; j++) {
+		for (int j = 0; j < numTrianglesShirts; j++) {
 			if (i == j) continue;
 			vector<Point> other_t = destinationTriangles[j];
 
@@ -931,6 +939,7 @@ void CColorBasics::ApplyTshirt() {
 				Point end = destination_t[(k == destination_t.size() - 1) ? 0 : k + 1];
 				if (vectorContains(other_t, start) && vectorContains(other_t, end)) {
 					cutoffLines.push_back(pair<Point, Point>(start, end));
+					allCutoffLines.push_back(pair<Point, Point>(start, end));
 				}
 			}
 		}
@@ -947,10 +956,10 @@ void CColorBasics::ApplyTshirt() {
 		}
 
 		// Draw cutoff lines
-		//for (int j = 0; j < cutoffLines.size(); j++) {
-		//	pair<Point, Point> cutoffLine = cutoffLines[j];
-		//	line(m_personImage, cutoffLine.first, cutoffLine.second, GREEN, 2);
-		//}
+		for (int j = 0; j < allCutoffLines.size(); j++) {
+			pair<Point, Point> cutoffLine = allCutoffLines[j];
+			//line(m_personImage, cutoffLine.first, cutoffLine.second, GREEN, 2);
+		}
 	}
 }
 
@@ -1250,9 +1259,9 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
     {
         case WM_INITDIALOG:
         {
-			m_shirtImage = imread("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\superman_tshirt_transparent.png", IMREAD_UNCHANGED);
+			m_shirtImage = imread("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\black_tshirt_transparent.png", IMREAD_UNCHANGED);
 			m_shirtImage.convertTo(m_shirtImage, CV_32F, 1.0/255.0f);
-			m_shirtPoints = readClothingPoints("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\superman_tshirt.jpg.txt");
+			m_shirtPoints = readClothingPoints("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\black_tshirt.jpg.txt");
 
 			m_shortsImage = imread("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\red_shorts_transparent.png", IMREAD_UNCHANGED);
 			m_shortsImage.convertTo(m_shortsImage, CV_32F, 1.0 / 255.0f);
