@@ -484,14 +484,14 @@ void CColorBasics::Update()
 		// Without triangles
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
-		ApplyClothing(cTrianglesShirt, cNumTrianglesShirt, m_shirtImage, m_shirtPoints, m_personUpperBodyPoints, false);
+		ApplyClothing(cTrianglesShirt, cNumTrianglesShirt, m_shirtImage, m_shirtPoints, m_personUpperBodyPoints, true);
 		namedWindow("Shirt Only", WINDOW_NORMAL);
 		imshow("Shirt Only", m_personImage);
 		WriteLayeredPng("./bin_dumps/shirt_only.png", m_personImage);
 
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
-		ApplyClothing(cTrianglesShorts, cNumTrianglesShorts, m_shortsImage, m_shortsPoints, m_personLowerBodyPoints, false);
+		ApplyClothing(cTrianglesShorts, cNumTrianglesShorts, m_shortsImage, m_shortsPoints, m_personLowerBodyPoints, true);
 		namedWindow("Shorts Only", WINDOW_NORMAL);
 		imshow("Shorts Only", m_personImage);
 		WriteLayeredPng("./bin_dumps/shorts_only.png", m_personImage);
@@ -968,9 +968,7 @@ void CColorBasics::ApplyClothing(
 			}
 		}
 
-		if (!drawTriangles) {
-			MapTriangle(source_t, destination_t, cutoffLines, matClothing);
-		}
+		MapTriangle(source_t, destination_t, cutoffLines, matClothing);
 	}
 
 
