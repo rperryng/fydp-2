@@ -968,7 +968,9 @@ void CColorBasics::ApplyClothing(
 			}
 		}
 
-		MapTriangle(source_t, destination_t, cutoffLines, matClothing);
+		if (!drawTriangles) {
+			MapTriangle(source_t, destination_t, cutoffLines, matClothing);
+		}
 	}
 
 
