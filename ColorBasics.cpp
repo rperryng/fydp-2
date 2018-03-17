@@ -378,15 +378,15 @@ int CColorBasics::Run(HINSTANCE hInstance, int nCmdShow)
 void CColorBasics::LoadBinaryData() {
 	FILE *file;
 
-	file = fopen("C:\\Users\\Ryan\\~\\code\\fydp-2\\bin_dumps\\color.dump", "rb");
+	file = fopen("./bin_dumps/color.dump", "rb");
 	fread(m_colorBuffer, sizeof(RGBQUAD), cColorWidth * cColorHeight, file);
 	fclose(file);
 
-	file = fopen("C:\\Users\\Ryan\\~\\code\\fydp-2\\bin_dumps\\depth.dump", "rb");
+	file = fopen("./bin_dumps/depth.dump", "rb");
 	fread(m_depthBuffer, sizeof(USHORT), cDepthWidth * cDepthHeight, file);
 	fclose(file);
 
-	file = fopen("C:\\Users\\Ryan\\~\\code\\fydp-2\\bin_dumps\\bonez.dump", "rb");
+	file = fopen("./bin_dumps/bonez.dump", "rb");
 	fread(m_joints, sizeof(Joint), JointType_Count, file);
 	fclose(file);
 }
@@ -394,15 +394,15 @@ void CColorBasics::LoadBinaryData() {
 void CColorBasics::StoreBinaryData() {
 	FILE *file;
 
-	file = fopen("C:\\Users\\Ryan\\~\\code\\fydp-2\\bin_dumps\\color.dump", "wb");
+	file = fopen("./bin_dumps/color.dump", "wb");
 	fwrite(m_colorBuffer, sizeof(RGBQUAD), cColorWidth * cColorHeight, file);
 	fclose(file);
 
-	file = fopen("C:\\Users\\Ryan\\~\\code\\fydp-2\\bin_dumps\\depth.dump", "wb");
+	file = fopen("./bin_dumps/depth.dump", "wb");
 	fwrite(m_depthBuffer, sizeof(USHORT), cDepthWidth * cDepthHeight, file);
 	fclose(file);
 
-	file = fopen("C:\\Users\\Ryan\\~\\code\\fydp-2\\bin_dumps\\bonez.dump", "wb");
+	file = fopen("./bin_dumps/bonez.dump", "wb");
 	fwrite(m_joints, sizeof(Joint), JointType_Count, file);
 	fclose(file);
 }
@@ -1212,13 +1212,13 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
     {
         case WM_INITDIALOG:
         {
-			m_shirtImage = imread("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\superman_tshirt_transparent.png", IMREAD_UNCHANGED);
+			m_shirtImage = imread("./resources/superman_tshirt_transparent.png", IMREAD_UNCHANGED);
 			m_shirtImage.convertTo(m_shirtImage, CV_32F, 1.0/255.0f);
-			m_shirtPoints = readClothingPoints("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\superman_tshirt.jpg.txt");
+			m_shirtPoints = readClothingPoints("./resources/superman_tshirt.jpg.txt");
 
-			m_shortsImage = imread("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\red_shorts_transparent.png", IMREAD_UNCHANGED);
+			m_shortsImage = imread("./resources/red_shorts_transparent.png", IMREAD_UNCHANGED);
 			m_shortsImage.convertTo(m_shortsImage, CV_32F, 1.0 / 255.0f);
-			m_shortsPoints = readClothingPoints("C:\\Users\\Ryan\\~\\code\\fydp-2\\resources\\red_shorts.jpg.txt");
+			m_shortsPoints = readClothingPoints("./resources/red_shorts.jpg.txt");
 
             // Bind application window handle
             m_hWnd = hWnd;
