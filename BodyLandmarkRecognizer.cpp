@@ -4,13 +4,6 @@
 using namespace cv;
 using std::vector;
 
-#define RED_8U Scalar(0, 0, USHRT_MAX)
-#define BLUE_8U Scalar(USHRT_MAX, 0, 0)
-#define GREEN_8U Scalar(0, USHRT_MAX, 0)
-#define RED Scalar(0, 0, 255)
-#define BLUE Scalar(255, 0, 0)
-#define GREEN Scalar(0, 255, 0)
-
 BodyLandmarkRecognizer::BodyLandmarkRecognizer(
 	UINT16 *depthBuffer,
 	int depthBufferHeight,

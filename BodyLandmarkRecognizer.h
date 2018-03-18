@@ -1,10 +1,5 @@
 #pragma once
 
-typedef enum _ClothingType {
-	ClothingType_Shirt,
-	ClothingType_Shorts
-} ClothingType;
-
 class BodyLandmarkRecognizer {
 public:
 	BodyLandmarkRecognizer(
@@ -53,29 +48,6 @@ private:
 		TPSH_RightOuterQuad
 	} TracePointsShorts;
 
-	struct tracePoints_t {
-		cv::Point leftNeck;
-		cv::Point rightNeck;
-		cv::Point leftShoulder;
-		cv::Point rightShoulder;
-		cv::Point leftOuterHem;
-		cv::Point leftInnerHem;
-		cv::Point rightOuterHem;
-		cv::Point rightInnerHem;
-		cv::Point leftHip;
-		cv::Point rightHip;
-		cv::Point leftHipUpper;
-		cv::Point rightHipUpper;
-
-		cv::Point crotch;
-		cv::Point leftOuterKnee;
-		cv::Point leftInnerKnee;
-		cv::Point rightOuterKnee;
-		cv::Point rightInnerKnee;
-		cv::Point leftOuterQuad;
-		cv::Point rightOuterQuad;
-	};
-
 	UINT16 *m_depthBuffer;
 	int m_depthBufferHeight, m_depthBufferWidth;
 
@@ -84,7 +56,6 @@ private:
 
 	Joint *m_joints;
 	cv::Point m_jointsDepthSpace[JointType_Count];
-	tracePoints_t m_tracePoints;
 
 	ICoordinateMapper *m_coordinateMapper;
 	cv::Mat m_matDepth, m_matDepthRaw, m_matColor;

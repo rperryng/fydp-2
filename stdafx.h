@@ -12,6 +12,13 @@
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 #endif
 
+#define RED_8U Scalar(0, 0, USHRT_MAX)
+#define BLUE_8U Scalar(USHRT_MAX, 0, 0)
+#define GREEN_8U Scalar(0, USHRT_MAX, 0)
+#define RED Scalar(0, 0, 255)
+#define BLUE Scalar(255, 0, 0)
+#define GREEN Scalar(0, 255, 0)
+
 // Windows Header Files
 #include <windows.h>
 #include <Shlobj.h>
@@ -44,6 +51,11 @@
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 #endif
+
+typedef enum _ClothingType {
+	ClothingType_Shirt,
+	ClothingType_Shorts
+} ClothingType;
 
 // Safe release for interfaces
 template<class Interface>

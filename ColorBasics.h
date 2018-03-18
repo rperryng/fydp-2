@@ -16,6 +16,7 @@
 #include "DisjointSet.h"
 #include "ComponentPolarizer.h"
 #include "BodyLandmarkRecognizer.h"
+#include "ClothingMapper.h"
 
 using namespace cv;
 using namespace std;

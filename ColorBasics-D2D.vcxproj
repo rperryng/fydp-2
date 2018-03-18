@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ClothingMapper.cpp" />
     <ClCompile Include="ColorBasics.cpp" />
     <ClCompile Include="ComponentPolarizer.cpp" />
     <ClCompile Include="DisjointSet.cpp" />
@@ -32,6 +33,7 @@
     <ResourceCompile Include="ColorBasics.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ClothingMapper.h" />
     <ClInclude Include="ColorBasics.h" />
     <ClInclude Include="ComponentPolarizer.h" />
     <ClInclude Include="DisjointSet.h" />
