@@ -102,8 +102,6 @@ private:
 	DWORD                   m_nFramesSinceUpdate;
 	bool                    m_bSaveScreenshot;
 	bool					m_ranOnceAlready = false;
-	vector<Point>			m_personUpperBodyPoints;
-	vector<Point>			m_personLowerBodyPoints;
 	vector<Point>			m_shirtPoints;
 	vector<Point>			m_shortsPoints;
 
@@ -140,19 +138,10 @@ private:
 	void				    UpdateColor();
 	void					UpdateDepth();
 	bool					UpdateBody();
-	void					DisjointEdgeDetection(DepthSpacePoint dsp);
 	void					MapTriangle(vector<Point> &source_t, vector<Point> &destination_t, vector<pair<Point, Point>> cutoffLines, Mat clothingImage);
 	void					ApplyClothing(const int triangles[][3], int numTriangles, Mat clothingPiece, vector<Point> clothingPoints, vector<Point> bodyPoints, bool drawTriangles);
 	void					WriteLayeredPng(String filename, Mat mat);
-	vector<Point>			LandmarkRecognition();
 	vector<Point>			readClothingPoints(string filename);
-	Point					findBoundary(Mat matDepth, Point startPoint, bool traverseRight, float slope);
-
-	UINT16					dGrid(int y, int x);
-	DepthSpacePoint			JointToDepthSpacePoint(JointType jointType);
-	ColorSpacePoint			DepthSpaceToColorSpace(int x, int y);
-	Point					GetOffsetForJoint(Joint joint);
-	Point					GetOffsetForPosition(CameraSpacePoint csp);
 
 	void Output(const char* szFormat, ...);
 
