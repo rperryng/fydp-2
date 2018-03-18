@@ -4,7 +4,7 @@
 
 class DisjointSet {
 public:
-	DisjointSet(int numNodes);
+	DisjointSet(int numNodes = 0);
 	int find(int element);
 	void doUnion(int a, int b);
 

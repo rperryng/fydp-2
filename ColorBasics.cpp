@@ -6,71 +6,12 @@
 
 #include "ColorBasics.h"
 
-#include "stdafx.h"
-#include <strsafe.h>
-#include <iostream>
-#include <fstream>
-#include <ctime>
-#include <vector>
-#include <unordered_map>
-
-#include <iostream>
-
 #define RED_8U Scalar(0, 0, USHRT_MAX)
 #define BLUE_8U Scalar(USHRT_MAX, 0, 0)
 #define GREEN_8U Scalar(0, USHRT_MAX, 0)
 #define RED Scalar(0, 0, 255)
 #define BLUE Scalar(255, 0, 0)
 #define GREEN Scalar(0, 255, 0)
-
-UINT16 CColorBasics::dGrid(int y, int x)
-{
-	return m_depthBuffer[(y * cDepthWidth) + x];
-}
-
-void CColorBasics::DisjointEdgeDetection(DepthSpacePoint dsp)
-{
-	short threshold = 25;
-	DisjointSet ds(cDepthHeight * cDepthWidth);
-
-	for (int i = 1; i < cDepthWidth; i++) {
-		if (abs(dGrid(0, i) - dGrid(0, i - 1)) < threshold) {
-			ds.doUnion(i, i - 1);
-		}
-	}
-
-	for (int i = 1; i < cDepthHeight; i++) {
-		if (abs(dGrid(i, 0) - dGrid(i - 1, 0)) < threshold) {
-			ds.doUnion(i*cDepthWidth, (i - 1)*cDepthWidth);
-		}
-	}
-
-	for (int i = 1; i < cDepthHeight; i++) {
-		for (int j = 1; j < cDepthWidth; j++) {
-			if (abs(dGrid(i, j) - dGrid(i - 1, j)) < threshold) {
-				ds.doUnion(i*cDepthWidth + j, (i - 1)*cDepthWidth + j);
-			}
-			if (abs(dGrid(i, j - 1) - dGrid(i, j)) < threshold) {
-				ds.doUnion(i*cDepthWidth + j, i*cDepthWidth + j - 1);
-			}
-		}
-	}
-
-	int personComponent = ds.find(cDepthWidth * ((int)(dsp.Y)) + (int)(dsp.X));
-
-	for (int i = 0; i < cDepthHeight; i++) {
-		for (int j = 0; j < cDepthWidth; j++) {
-			int num = ds.find(cDepthWidth * i + j);
-			if (num == personComponent) {
-				m_depthBuffer[i * cDepthWidth + j] = USHRT_MAX;
-			}
-			else {
-				char zero = 0;
-				m_depthBuffer[i * cDepthWidth + j] = 0;
-			}
-		}
-	}
-}
 
 int directionOfPoint(pair<Point, Point> line, Point c) {
 	Point a = line.first;
@@ -401,11 +342,6 @@ void CColorBasics::Update()
 {
 	UpdateColor();
 
-	UINT16* depthBuffer = NULL;
-	UINT capacity = 0;
- 	int width = 0;
-	int height = 0;
-
 	DepthSpacePoint dspHipJoint = { 0 };
 
 	bool loadBinaryData = true;
@@ -419,7 +355,7 @@ void CColorBasics::Update()
 	{
 		if (!loadBinaryData) {
 			UpdateBody();
-			UpdateDepth(&capacity, &width, &height);
+			UpdateDepth();
 		}
 
 		if (storeBinaryData) {
@@ -432,7 +368,9 @@ void CColorBasics::Update()
 			return;
 		}
 
-		DisjointEdgeDetection(dspHipJoint);
+		ComponentPolarizer componentPolarizer(m_depthBuffer, cDepthHeight, cDepthWidth);
+		componentPolarizer.Polarize(dspHipJoint.X, dspHipJoint.Y);
+
 		LandmarkRecognition();
 
 		// With triangles
@@ -576,6 +514,10 @@ ColorSpacePoint CColorBasics::DepthSpaceToColorSpace(int x, int y) {
 	dsp.Y = (float) y;
 	m_pCoordinateMapper->MapDepthPointToColorSpace(dsp, USHRT_MAX, &csp);
 	return csp;
+}
+
+UINT16 CColorBasics::dGrid(int y, int x) {
+	return m_depthBuffer[y * cDepthWidth + x];
 }
 
 Point CColorBasics::GetOffsetForJoint(Joint joint) {
@@ -955,7 +897,7 @@ void CColorBasics::ApplyClothing(
 	}
 }
 
-void CColorBasics::UpdateDepth(UINT* capacity, int* width, int* height)
+void CColorBasics::UpdateDepth()
 {
     if (!m_pDepthFrameReader)
     {
@@ -987,13 +929,11 @@ void CColorBasics::UpdateDepth(UINT* capacity, int* width, int* height)
         if (SUCCEEDED(hr))
         {
             hr = pFrameDescription->get_Width(&nWidth);
-			*width = nWidth;
         }
 
         if (SUCCEEDED(hr))
         {
             hr = pFrameDescription->get_Height(&nHeight);
-			*height = nHeight;
         }
 
         if (SUCCEEDED(hr))
@@ -1020,7 +960,6 @@ void CColorBasics::UpdateDepth(UINT* capacity, int* width, int* height)
         {
 			UINT16* underlyingBuffer = NULL;
             hr = pDepthFrame->AccessUnderlyingBuffer(&nBufferSize, &underlyingBuffer);            
-			*capacity = nBufferSize;
 
 			for (int i = 0; i < nBufferSize; i++) {
 				UINT16 value = underlyingBuffer[i];

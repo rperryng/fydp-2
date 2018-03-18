@@ -7,11 +7,21 @@
 #pragma once
 
 #include <opencv2/opencv.hpp>
+#include <strsafe.h>
+#include <iostream>
+#include <fstream>
+#include <ctime>
+#include <vector>
+#include <unordered_map>
+#include <iostream>
 
 #include "resource.h"
 #include "ImageRenderer.h"
 #include "Kinect.h"
 #include "DisjointSet.h"
+#include "ComponentPolarizer.h"
+
+#include "stdafx.h"
 
 using namespace cv;
 using namespace std;
@@ -180,7 +190,7 @@ private:
 	void					StoreBinaryData();
 	void                    Update();
 	void				    UpdateColor();
-	void					UpdateDepth(UINT* capacity, int* width, int* height);
+	void					UpdateDepth();
 	void					UpdateBody();
 	void					DisjointEdgeDetection(DepthSpacePoint dsp);
 	void					MapTriangle(vector<Point> &source_t, vector<Point> &destination_t, vector<pair<Point, Point>> cutoffLines, Mat clothingImage);
