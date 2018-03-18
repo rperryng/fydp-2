@@ -191,7 +191,7 @@ private:
 	void                    Update();
 	void				    UpdateColor();
 	void					UpdateDepth();
-	void					UpdateBody();
+	bool					UpdateBody();
 	void					DisjointEdgeDetection(DepthSpacePoint dsp);
 	void					MapTriangle(vector<Point> &source_t, vector<Point> &destination_t, vector<pair<Point, Point>> cutoffLines, Mat clothingImage);
 	void					ApplyClothing(const int triangles[][3], int numTriangles, Mat clothingPiece, vector<Point> clothingPoints, vector<Point> bodyPoints, bool drawTriangles);

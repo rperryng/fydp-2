@@ -342,8 +342,6 @@ void CColorBasics::Update()
 {
 	UpdateColor();
 
-	DepthSpacePoint dspHipJoint = { 0 };
-
 	bool loadBinaryData = true;
 	bool storeBinaryData = false;
 
@@ -354,7 +352,10 @@ void CColorBasics::Update()
 	if (m_bSaveScreenshot || (loadBinaryData && !m_ranOnceAlready))
 	{
 		if (!loadBinaryData) {
-			UpdateBody();
+			if (!UpdateBody()) {
+				Output("Where da bonez at");
+				return;
+			}
 			UpdateDepth();
 		}
 
@@ -362,6 +363,7 @@ void CColorBasics::Update()
 			StoreBinaryData();
 		}
 
+		DepthSpacePoint dspHipJoint = { 0 };
 		m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[0].Position, &dspHipJoint);
 		if (isinf(dspHipJoint.X) || isinf(dspHipJoint.Y)) {
 			Output("Kinect not wok??");
@@ -998,11 +1000,11 @@ void CColorBasics::UpdateDepth()
     SafeRelease(pDepthFrame);
 }
 
-void CColorBasics::UpdateBody() 
+bool CColorBasics::UpdateBody() 
 {
     IBodyFrame* pBodyFrame = NULL;
-
     HRESULT hr = m_pBodyFrameReader->AcquireLatestFrame(&pBodyFrame);
+	bool atLeastOneBodyCaptured = false;
 
     if (SUCCEEDED(hr))
     {
@@ -1046,12 +1048,8 @@ void CColorBasics::UpdateBody()
 				{
 					for (int j = 0; j < _countof(joints); ++j)
 					{
-						Joint joint = joints[j];
 						m_joints[j] = joints[j];
-
-						DepthSpacePoint depthPoint = {0};
-						m_pCoordinateMapper->MapCameraPointToDepthSpace(joints[j].Position, &depthPoint);
-						Output("X: %f, Y: %f, Type: %d\n", depthPoint.X, depthPoint.Y, static_cast<underlying_type<JointType>::type>(joints[j].JointType));
+						atLeastOneBodyCaptured = true;
 					}
 				}
             }
@@ -1064,7 +1062,7 @@ void CColorBasics::UpdateBody()
     }
 
     SafeRelease(pBodyFrame);
-	// Do nothing
+	return atLeastOneBodyCaptured;
 }
 
 /// <summary>
