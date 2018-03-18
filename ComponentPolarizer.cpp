@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "ComponentPolarizer.h"
 
 ComponentPolarizer::ComponentPolarizer(UINT16 *grid, int gridHeight, int gridWidth) {

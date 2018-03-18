@@ -6,69 +6,19 @@
 
 #pragma once
 
-#include <opencv2/opencv.hpp>
-#include <strsafe.h>
-#include <iostream>
 #include <fstream>
 #include <ctime>
-#include <vector>
 #include <unordered_map>
 #include <iostream>
 
 #include "resource.h"
 #include "ImageRenderer.h"
-#include "Kinect.h"
 #include "DisjointSet.h"
 #include "ComponentPolarizer.h"
-
-#include "stdafx.h"
+#include "BodyLandmarkRecognizer.h"
 
 using namespace cv;
 using namespace std;
-
-struct skeletalBodyPoints_t {
-	int neck_y;
-	int neck_x;
-	int leftShoulder_y;
-	int leftShoulder_x;
-	int rightShoulder_y;
-	int rightShoulder_x;
-	int leftHip_y;
-	int leftHip_x;
-	int rightHip_y;
-	int rightHip_x;
-	int leftElbow_y;
-	int leftElbow_x;
-	int rightElbow_y;
-	int rightElbow_x;
-	int crotch_x;
-	int crotch_y;
-	int leftKnee_x;
-	int leftKnee_y;
-	int rightKnee_x;
-	int rightKnee_y;
-};
-
-struct tracePoints_t {
-	Point leftNeck;
-	Point rightNeck;
-	Point leftShoulder;
-	Point rightShoulder;
-	Point leftOuterHem;
-	Point leftInnerHem;
-	Point rightOuterHem;
-	Point rightInnerHem;
-	Point leftHip;
-	Point rightHip;
-
-	Point crotch;
-	Point leftOuterKnee;
-	Point leftInnerKnee;
-	Point rightOuterKnee;
-	Point rightInnerKnee;
-	Point leftOuterQuad;
-	Point rightOuterQuad;
-};
 
 class CColorBasics
 {
@@ -161,9 +111,7 @@ private:
 	RGBQUAD*				m_colorBuffer;
 	Joint					m_joints[JointType_Count];
 
-	skeletalBodyPoints_t	m_skeletalPoints;
-	tracePoints_t			m_tracePoints;
-
+	//skeletalBodyPoints_t	m_skeletalPoints;
 	Mat						m_personImage;
 	Mat						m_shirtImage;
 	Mat						m_shortsImage;

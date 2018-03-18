@@ -14,7 +14,6 @@
 
 // Windows Header Files
 #include <windows.h>
-
 #include <Shlobj.h>
 
 // Direct2D Header Files
@@ -22,6 +21,17 @@
 
 // Kinect Header files
 #include <Kinect.h>
+
+// OpenCV
+#include <opencv2/opencv.hpp>
+
+// Types
+#include "basetsd.h"
+
+// Common std
+#include <strsafe.h>
+#include <vector>
+#include <stdexcept>
 
 #pragma comment (lib, "d2d1.lib")
 

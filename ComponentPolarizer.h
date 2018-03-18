@@ -1,6 +1,5 @@
 #pragma once
 
-#include "basetsd.h"
 #include "DisjointSet.h"
 
 #include <utility>

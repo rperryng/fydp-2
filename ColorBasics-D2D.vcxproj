@@ -23,6 +23,7 @@
     <ClCompile Include="ComponentPolarizer.cpp" />
     <ClCompile Include="DisjointSet.cpp" />
     <ClCompile Include="ImageRenderer.cpp" />
+    <ClCompile Include="BodyLandmarkRecognizer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="app.ico" />
@@ -35,6 +36,7 @@
     <ClInclude Include="ComponentPolarizer.h" />
     <ClInclude Include="DisjointSet.h" />
     <ClInclude Include="ImageRenderer.h" />
+    <ClInclude Include="BodyLandmarkRecognizer.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
