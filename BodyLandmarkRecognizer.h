@@ -22,6 +22,37 @@ public:
 	cv::Point findBoundary(cv::Mat matDepth, cv::Point start, bool traverseRight, float slope);
 
 private:
+	static const int cNumTracePointsShirt = 12;
+	cv::Point m_tracePointsShirt[12];
+	typedef enum _TracePointsShirt {
+		TPS_LeftNeck,
+		TPS_RightNeck,
+		TPS_LeftShoulder,
+		TPS_RightShoulder,
+		TPS_LeftOuterHem,
+		TPS_LeftInnerHem,
+		TPS_RightOuterHem,
+		TPS_RightInnerHem,
+		TPS_LeftHip,
+		TPS_RightHip,
+		TPS_LeftHipUpper,
+		TPS_RightHipUpper
+	} TracePointsShirt;
+
+	static const int cNumTracePointsShorts = 9;
+	cv::Point m_tracePointsShorts[cNumTracePointsShorts];
+	typedef enum _TracePointsShorts {
+		TPSH_LeftHip,
+		TPSH_RightHip,
+		TPSH_Crotch,
+		TPSH_LeftOuterKnee,
+		TPSH_LeftInnerKnee,
+		TPSH_RightOuterKnee,
+		TPSH_RightInnerKnee,
+		TPSH_LeftOuterQuad,
+		TPSH_RightOuterQuad
+	} TracePointsShorts;
+
 	struct tracePoints_t {
 		cv::Point leftNeck;
 		cv::Point rightNeck;
@@ -65,5 +96,5 @@ private:
 
 	// Utility functions
 	cv::Point JointToDepthSpace(JointType jointType);
-	ColorSpacePoint DepthSpaceToColorSpace(int x, int y);
+	cv::Point DepthSpaceToColorSpace(cv::Point point);
 };
