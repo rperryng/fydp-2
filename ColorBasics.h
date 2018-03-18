@@ -6,14 +6,12 @@
 
 #pragma once
 
-//#include <opencv2/core.hpp>
-//#include <opencv2/imgcodecs.hpp>
-//#include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
 
 #include "resource.h"
 #include "ImageRenderer.h"
 #include "Kinect.h"
+#include "DisjointSet.h"
 
 using namespace cv;
 using namespace std;
@@ -73,17 +71,17 @@ class CColorBasics
 	static const int cNumTrianglesShirt = 12;
 	static constexpr int cTrianglesShirt[cNumTrianglesShirt][3] = {
 		{ 2, 4, 6 },
-	{ 2, 0, 6 },
-	{ 0, 1, 6 },
-	{ 6, 1, 7 },
-	{ 1, 3, 7 },
-	{ 3, 5, 7 },
-	{ 6, 8, 9 },
-	{ 6, 7, 9 },
-	{ 4, 6, 8 },
-	{ 5, 7, 9 },
-	{ 8, 9, 10 },
-	{ 9, 10, 11 }
+		{ 2, 0, 6 },
+		{ 0, 1, 6 },
+		{ 6, 1, 7 },
+		{ 1, 3, 7 },
+		{ 3, 5, 7 },
+		{ 6, 8, 9 },
+		{ 6, 7, 9 },
+		{ 4, 6, 8 },
+		{ 5, 7, 9 },
+		{ 8, 9, 10 },
+		{ 9, 10, 11 }
 	};
 
 	static const int cNumTrianglesShorts = 7;

@@ -23,43 +23,6 @@
 #define BLUE Scalar(255, 0, 0)
 #define GREEN Scalar(0, 255, 0)
 
-class DisjointSet {
-public:
-	DisjointSet(int num_nodes);
-	int find(int element);
-	void do_union(int elment_a, int element_b);
-	void dup(vector<int> &v);
-private:
-	vector<int> parent_, rank_;
-};
-
-DisjointSet::DisjointSet(int num_nodes) :
-	parent_(num_nodes), rank_(num_nodes, 0)
-{
-	for (int i = 0; i < num_nodes; ++i) parent_[i] = i;
-}
-
-int DisjointSet::find(int element)
-{
-	if (parent_[element] == element) return element;
-	//1)path compression
-	return parent_[element] = find(parent_[element]);
-}
-
-void DisjointSet::do_union(int a, int b)
-{
-	if (parent_[a] == parent_[b]) return;
-	int fa = find(a), fb = find(b);
-	//2)union by rank
-	if (rank_[fa] < rank_[fb]) {
-		parent_[fa] = fb;
-	}
-	else {
-		parent_[fb] = fa;
-		if (rank_[fa] == rank_[fb]) rank_[fa]++;
-	}
-}
-
 UINT16 CColorBasics::dGrid(int y, int x)
 {
 	return m_depthBuffer[(y * cDepthWidth) + x];
@@ -72,23 +35,23 @@ void CColorBasics::DisjointEdgeDetection(DepthSpacePoint dsp)
 
 	for (int i = 1; i < cDepthWidth; i++) {
 		if (abs(dGrid(0, i) - dGrid(0, i - 1)) < threshold) {
-			ds.do_union(i, i - 1);
+			ds.doUnion(i, i - 1);
 		}
 	}
 
 	for (int i = 1; i < cDepthHeight; i++) {
 		if (abs(dGrid(i, 0) - dGrid(i - 1, 0)) < threshold) {
-			ds.do_union(i*cDepthWidth, (i - 1)*cDepthWidth);
+			ds.doUnion(i*cDepthWidth, (i - 1)*cDepthWidth);
 		}
 	}
 
 	for (int i = 1; i < cDepthHeight; i++) {
 		for (int j = 1; j < cDepthWidth; j++) {
 			if (abs(dGrid(i, j) - dGrid(i - 1, j)) < threshold) {
-				ds.do_union(i*cDepthWidth + j, (i - 1)*cDepthWidth + j);
+				ds.doUnion(i*cDepthWidth + j, (i - 1)*cDepthWidth + j);
 			}
 			if (abs(dGrid(i, j - 1) - dGrid(i, j)) < threshold) {
-				ds.do_union(i*cDepthWidth + j, i*cDepthWidth + j - 1);
+				ds.doUnion(i*cDepthWidth + j, i*cDepthWidth + j - 1);
 			}
 		}
 	}

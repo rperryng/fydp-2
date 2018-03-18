@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ColorBasics.cpp" />
+    <ClCompile Include="DisjointSet.cpp" />
     <ClCompile Include="ImageRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -30,6 +31,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ColorBasics.h" />
+    <ClInclude Include="DisjointSet.h" />
     <ClInclude Include="ImageRenderer.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
