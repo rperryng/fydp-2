@@ -227,32 +227,14 @@ void ClothingMapper::ApplyClothing(
 ) {
 	vector<vector<Point>> sourceTriangles;
 	vector<vector<Point>> destinationTriangles;
-	// int numTriangles = getNumTrianglesForClothingType(clothingType);
-	// int **triangles = getTrianglesForClothingType(clothingType);
-
-	vector<Point2f> clothingHull;
-   	vector<Point2f> bodyHull;
-   	vector<int> hullIndex;
-
-	convexHull(bodyPoints, hullIndex, false, false);
-
-	for(int i = 0; i < hullIndex.size(); i++)
-	{
-		clothingHull.push_back(clothingPoints[hullIndex[i]]);
-		bodyHull.push_back(bodyPoints[hullIndex[i]]);
-	}
-
-	// Find delaunay triangulation for points on the convex hull
-    vector<vector<int>> triangles;
-	Rect rect(0, 0, 1920, 1080);
-	calculateDelaunayTriangles(rect, bodyHull, triangles);
-	int numTriangles = triangles.size();
+	int numTriangles = getNumTrianglesForClothingType(clothingType);
+	int **triangles = getTrianglesForClothingType(clothingType);
 
 	for (int i = 0; i < numTriangles; i++) {
 		vector<Point> source_t, dest_t;
 		for (int j = 0; j < 3; j++) {
-			source_t.push_back(clothingHull[triangles[i][j]]);
-			dest_t.push_back(bodyHull[triangles[i][j]]);
+			source_t.push_back(clothingPoints[triangles[i][j]]);
+			dest_t.push_back(bodyPoints[triangles[i][j]]);
 		}
 
 		sourceTriangles.push_back(source_t);
@@ -302,8 +284,8 @@ void ClothingMapper::ApplyClothing(
 
 
 	// Cleanup triangles
-	//for (int i = 0; i < numTriangles; i++) {
-	//	delete(triangles[i]);
-	//}
-	//delete(triangles);
+	for (int i = 0; i < numTriangles; i++) {
+		delete(triangles[i]);
+	}
+	delete(triangles);
 }
