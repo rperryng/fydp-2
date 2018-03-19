@@ -180,6 +180,44 @@ void ClothingMapper::MapTriangle(
 	m_personImage(destination_rect) = m_personImage(destination_rect) + dest_crop;
 }
 
+// Calculate Delaunay triangles for set of points
+// Returns the vector of indices of 3 points for each triangle
+static void calculateDelaunayTriangles(Rect rect, vector<Point> &points, vector<vector<int>> &delaunayTri){
+
+	// Create an instance of Subdiv2D
+    Subdiv2D subdiv(rect);
+
+	// Insert points into subdiv, converting them to float2f
+    for( vector<Point>::iterator it = points.begin(); it != points.end(); it++)
+	{
+		subdiv.insert( Point2f( static_cast<float>(it->x), static_cast<float>(it->y) ) );
+	}
+
+	vector<Vec6f> triangleList;
+	subdiv.getTriangleList(triangleList);
+	vector<Point> pt(3);
+	vector<int> ind(3);
+
+	for( size_t i = 0; i < triangleList.size(); i++ )
+	{
+		Vec6f t = triangleList[i];
+		pt[0] = Point( static_cast<int>(t[0]), static_cast<int>(t[1]) );
+		pt[1] = Point( static_cast<int>(t[2]), static_cast<int>(t[3]) );
+		pt[2] = Point( static_cast<int>(t[4]), static_cast<int>(t[5]) );
+
+		for(int j = 0; j < 3; j++){
+			for(size_t k = 0; k < points.size(); k++){
+				if( (pt[j].x - points[k].x) < 2 && (pt[j].y - points[k].y) < 2){
+					ind[j] = k;
+				}
+			}
+		}
+		delaunayTri.push_back(ind);
+
+	}
+
+}
+
 void ClothingMapper::ApplyClothing(
 	ClothingType clothingType,
 	Mat matClothing,
@@ -189,8 +227,14 @@ void ClothingMapper::ApplyClothing(
 ) {
 	vector<vector<Point>> sourceTriangles;
 	vector<vector<Point>> destinationTriangles;
-	int numTriangles = getNumTrianglesForClothingType(clothingType);
-	int **triangles = getTrianglesForClothingType(clothingType);
+	// int numTriangles = getNumTrianglesForClothingType(clothingType);
+	// int **triangles = getTrianglesForClothingType(clothingType);
+
+	// Find delaunay triangulation for points on the convex hull
+    vector<vector<int>> triangles;
+	Rect rect(0, 0, 1920, 1080);
+	calculateDelaunayTriangles(rect, bodyPoints, triangles);
+	int numTriangles = triangles.size();
 
 	for (int i = 0; i < numTriangles; i++) {
 		vector<Point> source_t, dest_t;
