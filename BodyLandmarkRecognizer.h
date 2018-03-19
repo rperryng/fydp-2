@@ -14,7 +14,7 @@ public:
 	);
 
 	std::vector<cv::Point> buildTracePoints();
-	std::vector<cv::Point> recognizeFor(ClothingType clothingType);
+	std::vector<cv::Point> returnPointsFor(ClothingType clothingType);
 	cv::Point findBoundary(cv::Mat matDepth, cv::Point start, bool traverseRight, float slope = 0.0f);
 
 private:
@@ -30,8 +30,8 @@ private:
 		TP_RightInnerHem,
 		TP_LeftHip,
 		TP_RightHip,
-		TP_LeftHipUpper,
-		TP_RightHipUpper,
+		TP_LeftUpperHip,
+		TP_RightUpperHip,
 		TP_Crotch,
 		TP_LeftOuterKnee,
 		TP_LeftInnerKnee,
@@ -42,6 +42,9 @@ private:
 
 		TP_Count 
 	} TracePoints;
+
+	static const TracePoints cWhiteList_Shirt[];
+	static const TracePoints cWhiteList_Shorts[];
 
 	static const int cNumTracePointsShirt = 12;
 	cv::Point m_tracePointsShirt[12];
@@ -89,8 +92,7 @@ private:
 	std::vector<cv::Point> m_depthPoints;
 	std::vector<cv::Point> m_colorPoints;
 
-	std::vector<cv::Point> recognizeForShirt();
-	std::vector<cv::Point> recognizeForShorts();
+	std::vector<cv::Point> filterPoints(const TracePoints* whitelist, int numElements);
 	cv::Point GetOffsetForJoint(Joint joint);
 
 	// Utility functions

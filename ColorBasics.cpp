@@ -268,8 +268,8 @@ void CColorBasics::Update()
 			m_pCoordinateMapper
 		);
 		bodyLandmarkRecognizer.buildTracePoints();
-		vector<Point> upperBodyPoints = bodyLandmarkRecognizer.recognizeFor(ClothingType_Shirt);
-		vector<Point> lowerBodyPoints = bodyLandmarkRecognizer.recognizeFor(ClothingType_Shorts);
+		vector<Point> upperBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shirt);
+		vector<Point> lowerBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shorts);
 
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);

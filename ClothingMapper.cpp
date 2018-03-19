@@ -290,8 +290,8 @@ void ClothingMapper::ApplyClothing(
 
 
 	// Cleanup triangles
-	for (int i = 0; i < numTriangles; i++) {
-		delete(triangles[i]);
-	}
-	delete(triangles);
+	//for (int i = 0; i < numTriangles; i++) {
+	//	delete(triangles[i]);
+	//}
+	//delete(triangles);
 }
