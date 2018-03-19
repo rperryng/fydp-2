@@ -29,33 +29,6 @@ class CColorBasics
 	static const int        cDepthWidth = 512;
 	static const int        cDepthHeight = 424;
 
-	static const int cNumTrianglesShirt = 12;
-	static constexpr int cTrianglesShirt[cNumTrianglesShirt][3] = {
-		{ 2, 4, 6 },
-		{ 2, 0, 6 },
-		{ 0, 1, 6 },
-		{ 6, 1, 7 },
-		{ 1, 3, 7 },
-		{ 3, 5, 7 },
-		{ 6, 8, 9 },
-		{ 6, 7, 9 },
-		{ 4, 6, 8 },
-		{ 5, 7, 9 },
-		{ 8, 9, 10 },
-		{ 9, 10, 11 }
-	};
-
-	static const int cNumTrianglesShorts = 7;
-	static constexpr int cTrianglesShorts[cNumTrianglesShorts][3] = {
-		{ 0, 1, 3 },
-	{ 0, 2, 3 },
-	{ 1, 3, 4 },
-	{ 2, 5, 3 },
-	{ 3, 5, 6 },
-	{ 3, 7, 8 },
-	{ 3, 4, 8 }
-	};
-
 public:
 	/// <summary>
 	/// Constructor

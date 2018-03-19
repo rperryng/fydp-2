@@ -267,14 +267,15 @@ void CColorBasics::Update()
 			m_joints,
 			m_pCoordinateMapper
 		);
+		bodyLandmarkRecognizer.buildTracePoints();
 		vector<Point> upperBodyPoints = bodyLandmarkRecognizer.recognizeFor(ClothingType_Shirt);
 		vector<Point> lowerBodyPoints = bodyLandmarkRecognizer.recognizeFor(ClothingType_Shorts);
 
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
 		ClothingMapper clothingMapper(&m_personImage);
-		clothingMapper.ApplyClothing(cTrianglesShirt, cNumTrianglesShirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
-		clothingMapper.ApplyClothing(cTrianglesShorts, cNumTrianglesShorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, true);
+		clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
+		clothingMapper.ApplyClothing(ClothingType_Shorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, true);
 
 		//// With triangles
 		//m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);

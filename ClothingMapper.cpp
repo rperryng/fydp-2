@@ -29,6 +29,57 @@ bool vectorContains(vector<Point> container, Point value) {
 	return find(container.begin(), container.end(), value) != container.end();
 }
 
+int ClothingMapper::getNumTrianglesForClothingType(ClothingType clothingType) {
+	switch (clothingType)
+	{
+	case ClothingType_Shirt:
+		return cNumTrianglesShirt;
+
+	case ClothingType_Shorts:
+		return cNumTrianglesShorts;
+
+	default:
+		throw new std::invalid_argument("Invalid clothing type passed to getNumTrianglesForClothingType");
+	}
+}
+
+int** ClothingMapper::getTrianglesForClothingType(ClothingType clothingType) {
+	int **triangles = new int*[getNumTrianglesForClothingType(clothingType)];
+
+	switch (clothingType)
+	{
+	case ClothingType_Shirt:
+		triangles[0] = new int[3] { 2, 4, 6 };
+		triangles[1] = new int[3] { 2, 0, 6 };
+		triangles[2] = new int[3] { 0, 1, 6 };
+		triangles[3] = new int[3] { 6, 1, 7 };
+		triangles[4] = new int[3] { 1, 3, 7 };
+		triangles[5] = new int[3] { 3, 5, 7 };
+		triangles[6] = new int[3] { 6, 8, 9 };
+		triangles[7] = new int[3] { 6, 7, 9 };
+		triangles[8] = new int[3] { 4, 6, 8 };
+		triangles[9] = new int[3] { 5, 7, 9 };
+		triangles[10] = new int[3] { 8, 9, 10 };
+		triangles[11] = new int[3] { 9, 10, 11 };
+		break;
+
+	case ClothingType_Shorts:
+		triangles[0] = new int[3] { 0, 1, 3 };
+		triangles[1] = new int[3] { 0, 2, 3 };
+		triangles[2] = new int[3] { 1, 3, 4 };
+		triangles[3] = new int[3] { 2, 5, 3 };
+		triangles[4] = new int[3] { 3, 5, 6 };
+		triangles[5] = new int[3] { 3, 7, 8 };
+		triangles[6] = new int[3] { 3, 4, 8 };
+		break;
+
+	default:
+		throw new std::invalid_argument("Unrecognized clothing type");
+	}
+
+	return triangles;
+}
+
 ClothingMapper::ClothingMapper(Mat *personImage) {
 	m_personImage = *personImage;
 }
@@ -124,8 +175,7 @@ void ClothingMapper::MapTriangle(
 }
 
 void ClothingMapper::ApplyClothing(
-	const int triangles[][3],
-	int numTriangles,
+	ClothingType clothingType,
 	Mat matClothing,
 	vector<Point> clothingPoints,
 	vector<Point> bodyPoints,
@@ -133,6 +183,9 @@ void ClothingMapper::ApplyClothing(
 ) {
 	vector<vector<Point>> sourceTriangles;
 	vector<vector<Point>> destinationTriangles;
+	int numTriangles = getNumTrianglesForClothingType(clothingType);
+	int **triangles = getTrianglesForClothingType(clothingType);
+
 	for (int i = 0; i < numTriangles; i++) {
 		vector<Point> source_t, dest_t;
 		for (int j = 0; j < 3; j++) {
@@ -185,5 +238,11 @@ void ClothingMapper::ApplyClothing(
 		line(m_personImage, cutoffLine.first, cutoffLine.second, GREEN_8U, 2);
 	}
 
+
+	// Cleanup triangles
+	for (int i = 0; i < numTriangles; i++) {
+		delete(triangles[i]);
+	}
+	delete(triangles);
 }
 

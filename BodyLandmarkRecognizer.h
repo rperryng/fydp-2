@@ -13,10 +13,36 @@ public:
 		ICoordinateMapper *coordinateMapper
 	);
 
+	std::vector<cv::Point> buildTracePoints();
 	std::vector<cv::Point> recognizeFor(ClothingType clothingType);
-	cv::Point findBoundary(cv::Mat matDepth, cv::Point start, bool traverseRight, float slope);
+	cv::Point findBoundary(cv::Mat matDepth, cv::Point start, bool traverseRight, float slope = 0.0f);
 
 private:
+	cv::Point m_tracePoints[19];
+	typedef enum _TracePoints {
+		TP_LeftNeck,
+		TP_RightNeck,
+		TP_LeftShoulder,
+		TP_RightShoulder,
+		TP_LeftOuterHem,
+		TP_LeftInnerHem,
+		TP_RightOuterHem,
+		TP_RightInnerHem,
+		TP_LeftHip,
+		TP_RightHip,
+		TP_LeftHipUpper,
+		TP_RightHipUpper,
+		TP_Crotch,
+		TP_LeftOuterKnee,
+		TP_LeftInnerKnee,
+		TP_RightOuterKnee,
+		TP_RightInnerKnee,
+		TP_LeftOuterQuad,
+		TP_RightOuterQuad,
+
+		TP_Count 
+	} TracePoints;
+
 	static const int cNumTracePointsShirt = 12;
 	cv::Point m_tracePointsShirt[12];
 	typedef enum _TracePointsShirt {
@@ -60,12 +86,16 @@ private:
 	ICoordinateMapper *m_coordinateMapper;
 	cv::Mat m_matDepth, m_matDepthRaw, m_matColor;
 
+	std::vector<cv::Point> m_depthPoints;
+	std::vector<cv::Point> m_colorPoints;
+
 	std::vector<cv::Point> recognizeForShirt();
 	std::vector<cv::Point> recognizeForShorts();
-
 	cv::Point GetOffsetForJoint(Joint joint);
 
 	// Utility functions
 	cv::Point JointToDepthSpace(JointType jointType);
 	cv::Point DepthSpaceToColorSpace(cv::Point point);
+
+	void convertAndAddPoint(cv::Point depthPoint, JointType jointForOffset, TracePoints tracePoint);
 };

@@ -26,6 +26,9 @@ BodyLandmarkRecognizer::BodyLandmarkRecognizer(
 
 	m_coordinateMapper = coordinateMapper;
 
+	m_depthPoints = vector<Point>(TP_Count);
+	m_colorPoints = vector<Point>(TP_Count);
+
 	// Convert all joints into depth space
 	for (int i = 0; i < JointType_Count; i++) {
 		Point depthPoint = JointToDepthSpace((JointType) i);
@@ -49,7 +52,6 @@ Point BodyLandmarkRecognizer::GetOffsetForJoint(Joint joint) {
 	m_coordinateMapper->MapDepthPointToColorSpace(dsp, depthValue, &csp);
 	return Point(csp_control.X - csp.X, csp_control.Y - csp.Y);
 }
-
 
 vector<Point> BodyLandmarkRecognizer::recognizeFor(ClothingType clothingType) {
 	switch (clothingType)
@@ -112,7 +114,151 @@ Point pointAverage(Point p1, Point p2) {
 	);
 }
 
-std::vector<Point> BodyLandmarkRecognizer::recognizeForShirt() {
+void BodyLandmarkRecognizer::convertAndAddPoint(Point depthPoint, JointType jointOffset, TracePoints tracePoint) {
+	Point pointColorSpace = DepthSpaceToColorSpace(depthPoint);
+	pointColorSpace += GetOffsetForJoint(m_joints[jointOffset]);
+	m_depthPoints[tracePoint] = depthPoint;
+	m_colorPoints[tracePoint] = pointColorSpace;
+}
+
+vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
+	vector<Point> pointsDepth(TP_Count);
+	vector<Point> pointsColor(TP_Count);
+	Point pointColorSpace;
+	Point offset;
+	Point delta;
+	float slope;
+
+	// Neck
+	Point pointLeftNeck = findBoundary(m_matDepthRaw, m_jointsDepthSpace[JointType_Neck], false);
+	convertAndAddPoint(pointLeftNeck, JointType_Neck, TP_LeftNeck);
+
+	Point pointRightNeck = findBoundary(m_matDepthRaw, m_jointsDepthSpace[JointType_Neck], true);
+	convertAndAddPoint(pointRightNeck, JointType_Neck, TP_RightNeck);
+
+	// Shoulder Left
+	Point pointLeftShoulder = findBoundary(
+		m_matDepthRaw,
+		m_jointsDepthSpace[JointType_ShoulderLeft],
+		false,
+		1.0f
+	);
+	convertAndAddPoint(pointLeftShoulder, JointType_ShoulderLeft, TP_LeftShoulder);
+
+	// Right Shoulder
+	Point pointRightShoulder = findBoundary(
+		m_matDepthRaw,
+		m_jointsDepthSpace[JointType_ShoulderRight],
+		true,
+		-1.0f
+	);
+	convertAndAddPoint(pointRightShoulder, JointType_ShoulderRight, TP_RightShoulder);
+
+	// Left Hip
+	Point pointHipLeft = findBoundary(m_matDepthRaw, m_jointsDepthSpace[JointType_HipLeft], false, 0.0f);
+	convertAndAddPoint(pointHipLeft, JointType_HipLeft, TP_LeftHip);
+
+	// Right Hip
+	Point pointHipRight = findBoundary(m_matDepthRaw, m_jointsDepthSpace[JointType_HipRight], true, 0.0f);
+	convertAndAddPoint(pointHipRight, JointType_HipRight, TP_RightHip);
+
+	// Left Hem
+	Point pointLeftElbow = m_jointsDepthSpace[JointType_ElbowLeft];
+	pointLeftShoulder = m_jointsDepthSpace[JointType_ShoulderLeft];
+	Point leftBicep = pointAverage(pointLeftElbow, m_jointsDepthSpace[JointType_ShoulderLeft]);
+	slope = -((float) (pointLeftElbow.x - pointLeftShoulder.x)) / (pointLeftElbow.y - pointLeftShoulder.y);
+	Point pointLeftOuterHem = findBoundary(m_matDepthRaw, leftBicep, false, slope);
+	convertAndAddPoint(pointLeftOuterHem, JointType_ElbowLeft, TP_LeftOuterHem);
+
+	delta = leftBicep - pointLeftOuterHem;
+	Point pointLeftInnerHem = leftBicep + delta;
+	convertAndAddPoint(pointLeftInnerHem, JointType_ElbowLeft, TP_LeftInnerHem);
+
+	// Right Hem
+	Point rightElbow = m_jointsDepthSpace[JointType_ElbowRight];
+	pointRightShoulder = m_jointsDepthSpace[JointType_ShoulderRight];
+	Point rightBicep = pointAverage(rightElbow, pointRightShoulder);
+	slope = -((float) (rightElbow.x - pointRightShoulder.x)) / (rightElbow.y - pointRightShoulder.y);
+	Point pointRightOuterHem = findBoundary(m_matDepthRaw, rightBicep, true, slope);
+	convertAndAddPoint(pointRightOuterHem, JointType_ElbowRight, TP_RightOuterHem);
+
+	delta = rightBicep - pointRightOuterHem;
+	Point pointRightInnerHem = rightBicep + delta;
+	convertAndAddPoint(pointRightInnerHem, JointType_ElbowRight, TP_RightInnerHem);
+
+	// Left Hip Upper
+	Point pointHipLeftUpper = m_jointsDepthSpace[JointType_HipLeft];
+	pointHipLeftUpper.x += 5;
+	pointHipLeftUpper.y -= 20;
+	pointHipLeftUpper = findBoundary(m_matDepthRaw, pointHipLeftUpper, false, 0.0f);
+	convertAndAddPoint(pointHipLeftUpper, JointType_HipLeft, TP_LeftHipUpper);
+
+	// Right Hip Upper
+	Point pointHipRightUpper = m_jointsDepthSpace[JointType_HipRight];
+	pointHipRightUpper.x -= 5;
+	pointHipRightUpper.y -= 20;
+	pointHipRightUpper = findBoundary(m_matDepthRaw, pointHipRightUpper, true, 0.0f);
+	convertAndAddPoint(pointHipRightUpper, JointType_HipRight, TP_RightHipUpper);
+
+	// Pants
+	// poggers
+	// in the chat
+	// rip xqc
+
+	// Crotch
+	Point pointCrotch = m_jointsDepthSpace[JointType_SpineBase];
+	for (int y = pointCrotch.y; y < m_depthBufferHeight; y++) {
+		if (m_matDepthRaw.at<USHORT>(y, pointCrotch.x) == 0) {
+			pointCrotch.y = y;
+			break;
+		}
+	}
+	convertAndAddPoint(pointCrotch, JointType_SpineBase, TP_Crotch);
+
+	// Left Knee
+	Point pointLeftHip = m_jointsDepthSpace[JointType_HipLeft];
+	Point pointLeftKnee = m_jointsDepthSpace[JointType_KneeLeft];
+	slope = -((float) (pointLeftHip.x - pointLeftKnee.x)) /  (pointLeftHip.y - pointLeftKnee.y);
+	Point pointLeftOuterKnee = findBoundary(m_matDepthRaw, pointLeftKnee, false, slope);
+	Point pointLeftInnerKnee = findBoundary(m_matDepthRaw, pointLeftKnee, true, slope);
+	convertAndAddPoint(pointLeftOuterKnee, JointType_HipLeft, TP_LeftOuterKnee);
+	convertAndAddPoint(pointLeftInnerKnee, JointType_HipLeft, TP_LeftInnerKnee);
+	
+	// Right Knee
+	Point pointRightHip = m_jointsDepthSpace[JointType_HipRight];
+	Point pointRightKnee = m_jointsDepthSpace[JointType_KneeRight];
+	slope = -((float)(pointRightHip.x - pointRightKnee.x)) / (pointRightHip.y - pointRightKnee.y);
+	Point pointRightOuterKnee = findBoundary(m_matDepthRaw, pointRightKnee, false, slope);
+	Point pointRightInnerKnee = findBoundary(m_matDepthRaw, pointRightKnee, true, slope);
+	convertAndAddPoint(pointRightOuterKnee, JointType_HipRight, TP_RightOuterKnee);
+	convertAndAddPoint(pointRightInnerKnee, JointType_HipRight, TP_RightInnerKnee);
+	
+	// Left Quad
+	Point quadLeft = pointAverage(pointLeftHip, pointLeftKnee);
+	Point pointLeftOuterQuad = findBoundary(m_matDepthRaw, quadLeft, false, 0.0f);
+	convertAndAddPoint(pointLeftOuterQuad, JointType_HipLeft, TP_LeftOuterQuad);
+
+	// Right Quad
+	Point quadRight = pointAverage(pointRightHip, pointRightKnee);
+	Point pointRightOuterQuad = findBoundary(m_matDepthRaw, quadRight, true, 0.0f);
+	convertAndAddPoint(pointRightOuterQuad, JointType_HipRight, TP_RightOuterQuad);
+
+
+	for (int i = 0; i < TP_Count; i++) {
+		circle(m_matColor, m_colorPoints[i], 5, BLUE, FILLED, LINE_8);
+		circle(m_matDepth, m_depthPoints[i], 5, BLUE_8U, FILLED, LINE_8);
+	}
+
+	namedWindow("matDepth", WINDOW_NORMAL);
+	namedWindow("matColor", WINDOW_NORMAL);
+	imshow("matDepth", m_matDepth);
+	imshow("matColor", m_matColor);
+	waitKey(0);
+
+	return m_depthPoints;
+}
+
+vector<Point> BodyLandmarkRecognizer::recognizeForShirt() {
 	vector<Point> pointsShirt(12);
 	Point csp;
 	Point offset;
