@@ -5,6 +5,11 @@ using std::vector;
 using std::pair;
 using namespace cv;
 
+/*
+https://www.geeksforgeeks.org/direction-point-line-segment/
+Positive is right
+Negative is left
+*/
 int directionOfPoint(pair<Point, Point> line, Point c) {
 	Point a = line.first;
 	Point b = line.second;
@@ -155,7 +160,7 @@ void ClothingMapper::MapTriangle(
 
 	Mat dest_crop = Mat::zeros(destination_rect.height, destination_rect.width, source_crop.type());
 
-	// Given a pair of triangles, find the affine transform.
+	// Given a pair of triangles, find the affine transformation matrix.
 	Mat warp_mat = getAffineTransform(source_triangle_bounded, destination_triangle_bounded);
 
 	// Apply the Affine Transform just found to the src image
@@ -169,6 +174,7 @@ void ClothingMapper::MapTriangle(
 		cv::multiply(alpha_mask, masks[i], alpha_mask);
 	}
 
+	// Alpha blending
 	cv::multiply(dest_crop, alpha_mask, dest_crop);
 	cv::multiply(m_personImage(destination_rect), Scalar(1.0, 1.0, 1.0, 1.0) - alpha_mask, m_personImage(destination_rect));
 	m_personImage(destination_rect) = m_personImage(destination_rect) + dest_crop;
@@ -245,4 +251,3 @@ void ClothingMapper::ApplyClothing(
 	}
 	delete(triangles);
 }
-

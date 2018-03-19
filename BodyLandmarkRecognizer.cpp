@@ -104,7 +104,7 @@ Point BodyLandmarkRecognizer::DepthSpaceToColorSpace(Point point) {
 }
 
 float calculateSlope(Point p1, Point p2) {
-	return ((float) (p1.x - p2.x)) / (p1.y - p2.y);
+	return ((float) (p1.y - p2.y)) / (p1.x - p2.x);
 }
 
 Point pointAverage(Point p1, Point p2) {
@@ -114,6 +114,10 @@ Point pointAverage(Point p1, Point p2) {
 	);
 }
 
+/*
+Adds depthPoint to m_depthPoints member variable (vector for depth trace points)
+Converts depthPoint to colour basis (with offset) and adds that point to m_colorPoints (vector for colour basis trace points)
+*/
 void BodyLandmarkRecognizer::convertAndAddPoint(Point depthPoint, JointType jointOffset, TracePoints tracePoint) {
 	Point pointColorSpace = DepthSpaceToColorSpace(depthPoint);
 	pointColorSpace += GetOffsetForJoint(m_joints[jointOffset]);
@@ -130,10 +134,10 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	float slope;
 
 	// Neck
-	Point pointLeftNeck = findBoundary(m_matDepthRaw, m_jointsDepthSpace[JointType_Neck], false);
+	Point pointLeftNeck = findBoundary(m_matDepthRaw, m_jointsDepthSpace[JointType_Neck], false, 0.0f);
 	convertAndAddPoint(pointLeftNeck, JointType_Neck, TP_LeftNeck);
 
-	Point pointRightNeck = findBoundary(m_matDepthRaw, m_jointsDepthSpace[JointType_Neck], true);
+	Point pointRightNeck = findBoundary(m_matDepthRaw, m_jointsDepthSpace[JointType_Neck], true, 0.0f);
 	convertAndAddPoint(pointRightNeck, JointType_Neck, TP_RightNeck);
 
 	// Shoulder Left
@@ -166,7 +170,8 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	Point pointLeftElbow = m_jointsDepthSpace[JointType_ElbowLeft];
 	pointLeftShoulder = m_jointsDepthSpace[JointType_ShoulderLeft];
 	Point leftBicep = pointAverage(pointLeftElbow, m_jointsDepthSpace[JointType_ShoulderLeft]);
-	slope = -((float) (pointLeftElbow.x - pointLeftShoulder.x)) / (pointLeftElbow.y - pointLeftShoulder.y);
+	slope = -1.0f / calculateSlope(pointLeftElbow, pointLeftShoulder);
+	// slope = -((float) (pointLeftElbow.x - pointLeftShoulder.x)) / (pointLeftElbow.y - pointLeftShoulder.y);
 	Point pointLeftOuterHem = findBoundary(m_matDepthRaw, leftBicep, false, slope);
 	convertAndAddPoint(pointLeftOuterHem, JointType_ElbowLeft, TP_LeftOuterHem);
 
@@ -178,7 +183,8 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	Point rightElbow = m_jointsDepthSpace[JointType_ElbowRight];
 	pointRightShoulder = m_jointsDepthSpace[JointType_ShoulderRight];
 	Point rightBicep = pointAverage(rightElbow, pointRightShoulder);
-	slope = -((float) (rightElbow.x - pointRightShoulder.x)) / (rightElbow.y - pointRightShoulder.y);
+	slope = -1.0f / calculateSlope(pointRightElbow, pointRightShoulder);
+	// slope = -((float) (rightElbow.x - pointRightShoulder.x)) / (rightElbow.y - pointRightShoulder.y);
 	Point pointRightOuterHem = findBoundary(m_matDepthRaw, rightBicep, true, slope);
 	convertAndAddPoint(pointRightOuterHem, JointType_ElbowRight, TP_RightOuterHem);
 
@@ -218,21 +224,23 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	// Left Knee
 	Point pointLeftHip = m_jointsDepthSpace[JointType_HipLeft];
 	Point pointLeftKnee = m_jointsDepthSpace[JointType_KneeLeft];
-	slope = -((float) (pointLeftHip.x - pointLeftKnee.x)) /  (pointLeftHip.y - pointLeftKnee.y);
+	slope = -1.0f / calculateSlope(pointLeftHip, pointLeftKnee);
+	// slope = -((float) (pointLeftHip.x - pointLeftKnee.x)) /  (pointLeftHip.y - pointLeftKnee.y);
 	Point pointLeftOuterKnee = findBoundary(m_matDepthRaw, pointLeftKnee, false, slope);
 	Point pointLeftInnerKnee = findBoundary(m_matDepthRaw, pointLeftKnee, true, slope);
-	convertAndAddPoint(pointLeftOuterKnee, JointType_HipLeft, TP_LeftOuterKnee);
-	convertAndAddPoint(pointLeftInnerKnee, JointType_HipLeft, TP_LeftInnerKnee);
-	
+	convertAndAddPoint(pointLeftOuterKnee, JointType_KneeLeft, TP_LeftOuterKnee);
+	convertAndAddPoint(pointLeftInnerKnee, JointType_KneeLeft, TP_LeftInnerKnee);
+
 	// Right Knee
 	Point pointRightHip = m_jointsDepthSpace[JointType_HipRight];
 	Point pointRightKnee = m_jointsDepthSpace[JointType_KneeRight];
-	slope = -((float)(pointRightHip.x - pointRightKnee.x)) / (pointRightHip.y - pointRightKnee.y);
-	Point pointRightOuterKnee = findBoundary(m_matDepthRaw, pointRightKnee, false, slope);
-	Point pointRightInnerKnee = findBoundary(m_matDepthRaw, pointRightKnee, true, slope);
-	convertAndAddPoint(pointRightOuterKnee, JointType_HipRight, TP_RightOuterKnee);
-	convertAndAddPoint(pointRightInnerKnee, JointType_HipRight, TP_RightInnerKnee);
-	
+	slope = -1.0f / calculateSlope(pointRightHip, pointRightknee);
+	// slope = -((float)(pointRightHip.x - pointRightKnee.x)) / (pointRightHip.y - pointRightKnee.y);
+	Point pointRightOuterKnee = findBoundary(m_matDepthRaw, pointRightKnee, true, slope);
+	Point pointRightInnerKnee = findBoundary(m_matDepthRaw, pointRightKnee, false, slope);
+	convertAndAddPoint(pointRightOuterKnee, JointType_KneeRight, TP_RightOuterKnee);
+	convertAndAddPoint(pointRightInnerKnee, JointType_KneeRight, TP_RightInnerKnee);
+
 	// Left Quad
 	Point quadLeft = pointAverage(pointLeftHip, pointLeftKnee);
 	Point pointLeftOuterQuad = findBoundary(m_matDepthRaw, quadLeft, false, 0.0f);
@@ -260,7 +268,7 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 
 vector<Point> BodyLandmarkRecognizer::recognizeForShirt() {
 	vector<Point> pointsShirt(12);
-	Point csp;
+	Point csp; // colour space point
 	Point offset;
 	Point delta;
 	float slope;
@@ -314,7 +322,8 @@ vector<Point> BodyLandmarkRecognizer::recognizeForShirt() {
 	Point pointLeftElbow = m_jointsDepthSpace[JointType_ElbowLeft];
 	Point pointLeftShoulder = m_jointsDepthSpace[JointType_ShoulderLeft];
 	Point leftBicep = pointAverage(pointLeftElbow, pointLeftShoulder);
-	slope = -((float) (pointLeftElbow.x - pointLeftShoulder.x)) / (pointLeftElbow.y - pointLeftShoulder.y);
+	slope = -1.0f / calculateSlope(pointLeftElbow, pointLeftShoulder);
+	// slope = -((float) (pointLeftElbow.x - pointLeftShoulder.x)) / (pointLeftElbow.y - pointLeftShoulder.y);
 	m_tracePointsShirt[TPS_LeftOuterHem] = findBoundary(m_matDepthRaw, leftBicep, false, slope);
 	delta = leftBicep - m_tracePointsShirt[TPS_LeftOuterHem];
 	m_tracePointsShirt[TPS_LeftInnerHem] = leftBicep + delta;
@@ -330,7 +339,8 @@ vector<Point> BodyLandmarkRecognizer::recognizeForShirt() {
 	Point rightElbow = m_jointsDepthSpace[JointType_ElbowRight];
 	Point rightShoulder = m_jointsDepthSpace[JointType_ShoulderRight];
 	Point rightBicep = pointAverage(rightElbow, rightShoulder);
-	slope = -((float) (rightElbow.x - rightShoulder.x)) / (rightElbow.y - rightShoulder.y);
+	slope = -1.0f / calculateSlope(rightElbow, rightShoulder);
+	// slope = -((float) (rightElbow.x - rightShoulder.x)) / (rightElbow.y - rightShoulder.y);
 	m_tracePointsShirt[TPS_RightOuterHem] = findBoundary(m_matDepthRaw, rightBicep, true, slope);
 	delta = rightBicep - m_tracePointsShirt[TPS_RightOuterHem];
 	m_tracePointsShirt[TPS_RightInnerHem] = rightBicep + delta;
@@ -423,7 +433,7 @@ vector<Point> BodyLandmarkRecognizer::recognizeForShorts() {
 	slope = -((float) (pointLeftHip.x - pointLeftKnee.x)) /  (pointLeftHip.y - pointLeftKnee.y);
 	m_tracePointsShorts[TPSH_LeftOuterKnee] = findBoundary(m_matDepthRaw, pointLeftKnee, false, slope);
 	m_tracePointsShorts[TPSH_LeftInnerKnee] = findBoundary(m_matDepthRaw, pointLeftKnee, true, slope);
-	
+
 	csp = DepthSpaceToColorSpace(m_tracePointsShorts[TPSH_LeftOuterKnee]);
 	offset = GetOffsetForJoint(m_joints[JointType_KneeLeft]);
 	pointsPants[5] = csp + offset;
@@ -438,7 +448,7 @@ vector<Point> BodyLandmarkRecognizer::recognizeForShorts() {
 	slope = -((float)(pointRightHip.x - pointRightKnee.x)) / (pointRightHip.y - pointRightKnee.y);
 	m_tracePointsShorts[TPSH_RightOuterKnee] = findBoundary(m_matDepthRaw, pointRightKnee, true, slope);
 	m_tracePointsShorts[TPSH_RightInnerKnee] = findBoundary(m_matDepthRaw, pointRightKnee, false, slope);
-	
+
 	csp = DepthSpaceToColorSpace(m_tracePointsShorts[TPSH_RightOuterKnee]);
 	offset = GetOffsetForJoint(m_joints[JointType_KneeRight]);
 	pointsPants[8] = csp + offset;
