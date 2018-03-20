@@ -278,12 +278,14 @@ void CColorBasics::Update()
 		bodyLandmarkRecognizer.buildTracePoints();
 		vector<Point> upperBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shirt);
 		vector<Point> lowerBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shorts);
+		vector<Point> pantsBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Pants);
 		vector<Point> sweaterBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Sweater);
 
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
 		ClothingMapper clothingMapper(&m_personImage);
-		clothingMapper.ApplyClothing(ClothingType_Shorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, true);
+		// clothingMapper.ApplyClothing(ClothingType_Shorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, true);
+		clothingMapper.ApplyClothing(ClothingType_Pants, m_pantsImage, m_pantsPoints, pantsBodyTracePoints, true);
 		// clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
 		clothingMapper.ApplyClothing(ClothingType_Sweater, m_sweaterImage, m_sweaterPoints, sweaterBodyTracePoints, true);
 
@@ -631,6 +633,10 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 			m_sweaterImage = imread("./resources/grey_sweater.png", IMREAD_UNCHANGED);
 			m_sweaterImage.convertTo(m_sweaterImage, CV_32F, 1.0 / 255.0f);
 			m_sweaterPoints = readClothingPoints("./resources/grey_sweater.png.txt");
+
+			m_pantsImage = imread("./resources/navy_pants.png", IMREAD_UNCHANGED);
+			m_pantsImage.convertTo(m_pantsImage, CV_32F, 1.0 / 255.0f);
+			m_pantsPoints = readClothingPoints("./resources/navy_pants.png.txt");
 
             // Bind application window handle
             m_hWnd = hWnd;
