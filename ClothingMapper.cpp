@@ -78,6 +78,29 @@ int** ClothingMapper::getTrianglesForClothingType(ClothingType clothingType) {
 		triangles[6] = new int[3] { 3, 4, 8 };
 		break;
 
+	case ClothingType_Sweater:
+		triangles[0] = new int[3] { 2, 4, 6 };
+		triangles[1] = new int[3] { 2, 0, 6 };
+		triangles[2] = new int[3] { 0, 1, 6 };
+		triangles[3] = new int[3] { 6, 1, 7 };
+		triangles[4] = new int[3] { 1, 3, 7 };
+		triangles[5] = new int[3] { 3, 5, 7 };
+		triangles[6] = new int[3] { 6, 8, 9 };
+		triangles[7] = new int[3] { 6, 7, 9 };
+		triangles[8] = new int[3] { 8, 9, 10 };
+		triangles[9] = new int[3] { 9, 10, 11};
+		triangles[10] = new int[3] { 10, 11, 13 };
+		triangles[11] = new int[3] { 10, 12, 13 };
+		triangles[12] = new int[3] { 4, 6, 16 };
+		triangles[13] = new int[3] { 4, 14, 16 };
+		triangles[14] = new int[3] { 14, 16, 20 };
+		triangles[15] = new int[3] { 14, 18, 20 };
+		triangles[16] = new int[3] { 5, 7, 17 };
+		triangles[17] = new int[3] { 5, 15, 17 };
+		triangles[18] = new int[3] { 15, 17, 21 };
+		triangles[19] = new int[3] { 15, 19, 21 };
+		break;
+
 	default:
 		throw new std::invalid_argument("Unrecognized clothing type");
 	}

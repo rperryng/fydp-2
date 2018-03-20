@@ -54,7 +54,8 @@
 
 typedef enum _ClothingType {
 	ClothingType_Shirt,
-	ClothingType_Shorts
+	ClothingType_Shorts,
+	ClothingType_Sweater
 } ClothingType;
 
 // Safe release for interfaces
