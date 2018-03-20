@@ -229,9 +229,10 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	Point jointSpineMid = m_jointsDepthSpace[JointType_SpineMid];
 	Point leftOuterRibTP = findBoundary(m_matDepthRaw, jointSpineMid, false, 0.0f);
 	convertAndAddPoint(leftOuterRibTP, JointType_SpineMid, TP_LeftOuterRib);
+
 	// Right Outer Rib
 	Point rightOuterRibTp = findBoundary(m_matDepthRaw, jointSpineMid, true, 0.0f);
-	convertAndAppPoint(rightOuterRibTp, JointType_SpineMid, TP_RightOUterRib);
+	convertAndAddPoint(rightOuterRibTp, JointType_SpineMid, TP_RightOuterRib);
 
 	// Pants
 	// poggers

@@ -40,7 +40,9 @@ private:
 		TP_RightOuterKnee,
 		TP_RightInnerKnee,
 		TP_LeftOuterQuad,
-		TP_RightOuterQuad
+		TP_RightOuterQuad,
+
+		TP_Count
 	} TracePoints;
 
 	static const TracePoints cWhiteList_Shirt[];

@@ -285,44 +285,10 @@ void CColorBasics::Update()
 		clothingMapper.ApplyClothing(ClothingType_Shorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, true);
 		clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
 
-		//// With triangles
-		//m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
-		//m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
-
-		//ClothingMapper clothingMapper(&m_personImage);
-		//clothingMapper.ApplyClothing(cTrianglesShirt, cNumTrianglesShirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
-		//clothingMapper.ApplyClothing(cTrianglesShorts, cNumTrianglesShorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, true);
-		//namedWindow("Triangles", WINDOW_NORMAL);
-		//imshow("Triangles", m_personImage);
-
-		//// Without triangles
-		//m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
-		//m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
-
-		//ClothingMapper clothingMapper(&m_personImage);
-		//clothingMapper.ApplyClothing(cTrianglesShirt, cNumTrianglesShirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
-		//namedWindow("Shirt Only", WINDOW_NORMAL);
-		//imshow("Shirt Only", m_personImage);
-
-		//m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
-		//m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
-		//ApplyClothing(cTrianglesShorts, cNumTrianglesShorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, false);
-		//namedWindow("Shorts Only", WINDOW_NORMAL);
-		//imshow("Shorts Only", m_personImage);
-
-		//// Reapply shirt
-		//ApplyClothing(cTrianglesShirt, cNumTrianglesShirt, m_shirtImage, m_shirtPoints, upperBodyPoints, false);
-
 		namedWindow("Result", WINDOW_NORMAL);
 		imshow("Result", m_personImage);
 
 		waitKey(0);
-		destroyWindow("Connected Components");
-		destroyWindow("Connected Components with Landmarks");
-		destroyWindow("Color with Landmarks");
-		destroyWindow("Triangles");
-		destroyWindow("Shirt Only");
-		destroyWindow("Shorts Only");
 		destroyWindow("Result");
 
 		ColorSpacePoint csp = { 0 };
