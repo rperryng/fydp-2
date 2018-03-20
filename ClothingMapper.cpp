@@ -43,6 +43,9 @@ int ClothingMapper::getNumTrianglesForClothingType(ClothingType clothingType) {
 	case ClothingType_Shorts:
 		return cNumTrianglesShorts;
 
+	case ClothingType_Sweater:
+		return cNumTrianglesSweater;
+
 	default:
 		throw new std::invalid_argument("Invalid clothing type passed to getNumTrianglesForClothingType");
 	}

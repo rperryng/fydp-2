@@ -23,7 +23,7 @@ const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Shi
 };
 
 #define NUM_SWEATER_POINTS 22
-const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Shirt[] = {
+const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Sweater[] = {
 	TP_LeftNeck,
 	TP_RightNeck,
 	TP_LeftShoulder,

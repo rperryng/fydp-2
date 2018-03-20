@@ -88,7 +88,7 @@ private:
 	Mat						m_personImage;
 	Mat						m_shirtImage;
 	Mat						m_shortsImage;
-	Map						m_sweaterImage;
+	Mat						m_sweaterImage;
 	Mat						m_clothingPreview;
 
 	// Current Kinect
