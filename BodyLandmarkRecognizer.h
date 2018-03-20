@@ -71,6 +71,7 @@ private:
 	static const TracePoints cWhiteList_Shirt[];
 	static const TracePoints cWhiteList_Shorts[];
 	static const TracePoints cWhiteList_Sweater[];
+	static const TracePoints cWhiteList_Pants[];
 
 	static const int cNumTracePointsShirt = 14;
 	static const int cNumTracePointsShorts = 9;

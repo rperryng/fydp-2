@@ -334,14 +334,14 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	convertAndAddPoint(pointRightOuterQuad, JointType_HipRight, TP_RightOuterQuad);
 
 	// Left Ankle
-	slope = -1.0f / calculateSlope(m_jointsDepthSpace[JointType_AnkleLeft], m_jointsDepthSpace[JointType_KneeLeft])
+	slope = -1.0f / calculateSlope(m_jointsDepthSpace[JointType_AnkleLeft], m_jointsDepthSpace[JointType_KneeLeft]);
 	Point leftOuterAnkle = findBoundary(m_jointsDepthSpace[JointType_AnkleLeft], false, slope);
 	Point leftInnerAnkle = findBoundary(m_jointsDepthSpace[JointType_AnkleLeft], true, slope);
 	convertAndAddPoint(leftOuterAnkle, JointType_AnkleLeft, TP_LeftOuterAnkle);
 	convertAndAddPoint(leftInnerAnkle, JointType_AnkleLeft, TP_LeftInnerAnkle);
 
 	// Right Ankle
-	slope = -1.0f / calculateSlope(m_jointsDepthSpace[JointType_AnkleRight], m_jointsDepthSpace[JointType_KneeRight])
+	slope = -1.0f / calculateSlope(m_jointsDepthSpace[JointType_AnkleRight], m_jointsDepthSpace[JointType_KneeRight]);
 	Point rightOuterAnkle = findBoundary(m_jointsDepthSpace[JointType_AnkleRight], true, slope);
 	Point rightInnerAnkle = findBoundary(m_jointsDepthSpace[JointType_AnkleRight], false, slope);
 	convertAndAddPoint(rightOuterAnkle, JointType_AnkleRight, TP_RightOuterAnkle);
@@ -380,7 +380,7 @@ vector<Point> BodyLandmarkRecognizer::returnPointsFor(ClothingType clothingType)
 		return filterPoints(cWhiteList_Sweater, cNumTracePointsSweater);
 
 	case ClothingType_Pants:
-		return filterPoints(cWhileList_Pants, cNumTracePointsPants);
+		return filterPoints(cWhiteList_Pants, cNumTracePointsPants);
 
 	default:
 		throw new std::invalid_argument("Invalid clothingType passed to returnPointsFor in BodyLandmarkRecognizer");
