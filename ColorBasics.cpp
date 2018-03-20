@@ -240,14 +240,6 @@ void CColorBasics::Update()
 				Output("Where da bonez at");
 				return;
 			}
-			if(m_blackPanther){
-				Mat blackPantherImage = imread("./resources/blackPanther.jpg", IMREAD_UNCHANGED);
-				blackPantherImage.convertTo(blackPantherImage, CV_32F, 1.0/255.0f);
-				namedWindow("Black Panther", WINDOW_NORMAL);
-				imshow("Black Panther", blackPantherImage);
-				waitKey(0);
-				return;
-			}
 			UpdateDepth();
 		}
 
@@ -569,36 +561,6 @@ bool CColorBasics::UpdateBody()
 			for (int j = 0; j < JointType_Count; ++j)
 			{
 				m_joints[j] = allJoints[bestBodyIndex][j];
-			}
-
-			// Shim for Black Panther
-			Joint leftWrist = m_joints[JointType_WristLeft];
-			Joint rightWrist = m_joints[JointType_WristRight];
-			Joint leftElbow = m_joints[JointType_ElbowLeft];
-			Joint rightElbow = m_joints[JointType_ElbowRight];
-			bool leftWristIsInPosition =
-				leftWrist.Position.X > rightWrist.Position.X &&
-				leftWrist.Position.X > leftElbow.Position.X &&
-				leftWrist.Position.Y < leftElbow.Position.Y &&
-				leftWrist.Position.Y < rightElbow.Position.Y;
-			bool rightWristIsInPosition =
-				rightWrist.Position.X < leftWrist.Position.X &&
-				rightWrist.Position.X < rightElbow.Position.X &&
-				rightWrist.Position.Y < rightElbow.Position.Y &&
-				rightWrist.Position.Y < leftElbow.Position.Y;
-			bool leftElbowIsInPosition =
-				leftElbow.Position.X < leftWrist.Position.X &&
-				leftElbow.Position.X < rightElbow.Position.X &&
-				leftElbow.Position.Y > rightWrist.Position.Y &&
-				leftElbow.Position.Y > leftWrist.Position.Y;
-			bool rightElbowIsInPosition =
-				rightElbow.Position.X > rightWrist.Position.X &&
-				rightElbow.Position.X > leftElbow.Position.X &&
-				rightElbow.Position.Y > rightWrist.Position.Y &&
-				rightElbow.Position.Y > leftWrist.Position.Y;
-
-			if(leftWristIsInPosition && rightWristIsInPosition && leftElbowIsInPosition && rightElbowIsInPosition){
-				m_blackPanther = true;
 			}
         }
 
