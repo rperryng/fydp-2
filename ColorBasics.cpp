@@ -262,16 +262,16 @@ void CColorBasics::Update()
 			return;
 		}
 
-		DepthSpacePoint dspLowestAnkle = { 0 };
+		DepthSpacePoint dspLowetsAnkle = { 0 };
 		if (m_joints[JointType_AnkleLeft].Position.Y < m_joints[JointType_AnkleRight].Position.Y) {
-			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleLeft].Position, &dspLowestAnkle);
+			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleLeft].Position, &dspLowetsAnkle);
 		}
 		else {
-			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleRight].Position, &dspLowestAnkle);
+			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleRight].Position, &dspLowetsAnkle);
 		}
 
 		ComponentPolarizer componentPolarizer(m_depthBuffer, cDepthHeight, cDepthWidth);
-		componentPolarizer.Polarize(dspHipJoint.X, dspHipJoint.Y, (int) dspLowestAnkle.Y);
+		componentPolarizer.Polarize(dspHipJoint.X, dspHipJoint.Y, (int) dspLowetsAnkle.Y + 2);
 
 		BodyLandmarkRecognizer bodyLandmarkRecognizer(
 			m_depthBuffer,
@@ -293,16 +293,16 @@ void CColorBasics::Update()
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
 		ClothingMapper clothingMapper(&m_personImage);
 		// clothingMapper.ApplyClothing(ClothingType_Shorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, true);
-		clothingMapper.ApplyClothing(ClothingType_Pants, m_pantsImage, m_pantsPoints, pantsBodyTracePoints, true);
+		clothingMapper.ApplyClothing(ClothingType_Pants, m_pantsImage, m_pantsPoints, pantsBodyTracePoints, false);
 		// clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
-		clothingMapper.ApplyClothing(ClothingType_Sweater, m_sweaterImage, m_sweaterPoints, sweaterBodyTracePoints, true);
+		clothingMapper.ApplyClothing(ClothingType_Sweater, m_sweaterImage, m_sweaterPoints, sweaterBodyTracePoints, false);
 
-		for (int i = 0; i < JointType_Count; i++) {
-			Joint joint = m_joints[i];
-			ColorSpacePoint csp = { 0 };
-			m_pCoordinateMapper->MapCameraPointToColorSpace(joint.Position, &csp);
-			circle(m_personImage, Point((int)csp.X, (int)csp.Y), 10, GREEN_8U, FILLED, LINE_8);
-		}
+		//for (int i = 0; i < JointType_Count; i++) {
+		//	Joint joint = m_joints[i];
+		//	ColorSpacePoint csp = { 0 };
+		//	m_pCoordinateMapper->MapCameraPointToColorSpace(joint.Position, &csp);
+		//	circle(m_personImage, Point((int)csp.X, (int)csp.Y), 10, GREEN_8U, FILLED, LINE_8);
+		//}
 
 		namedWindow("Result", WINDOW_NORMAL);
 		imshow("Result", m_personImage);
