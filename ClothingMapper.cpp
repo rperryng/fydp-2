@@ -298,14 +298,14 @@ void ClothingMapper::ApplyClothing(
 		for (int j = 0; j < currentTriangle.size(); j++) {
 			Point start = currentTriangle[j];
 			Point end = (j == currentTriangle.size() - 1) ? currentTriangle[0] : currentTriangle[j + 1];
-			line(m_personImage, start, end, RED_8U, 2);
+			line(m_personImage, start, end, RED_16U, 2);
 		}
 	}
 
 	// Draw cutoff lines
 	for (int j = 0; j < allCutoffLines.size(); j++) {
 		pair<Point, Point> cutoffLine = allCutoffLines[j];
-		line(m_personImage, cutoffLine.first, cutoffLine.second, GREEN_8U, 2);
+		line(m_personImage, cutoffLine.first, cutoffLine.second, GREEN_16U, 2);
 	}
 
 

@@ -287,6 +287,13 @@ void CColorBasics::Update()
 		// clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
 		clothingMapper.ApplyClothing(ClothingType_Sweater, m_sweaterImage, m_sweaterPoints, sweaterBodyTracePoints, true);
 
+		for (int i = 0; i < JointType_Count; i++) {
+			Joint joint = m_joints[i];
+			ColorSpacePoint csp = { 0 };
+			m_pCoordinateMapper->MapCameraPointToColorSpace(joint.Position, &csp);
+			circle(m_personImage, Point((int)csp.X, (int)csp.Y), 10, GREEN_8U, FILLED, LINE_8);
+		}
+
 		namedWindow("Result", WINDOW_NORMAL);
 		imshow("Result", m_personImage);
 
@@ -295,7 +302,7 @@ void CColorBasics::Update()
 
 		ColorSpacePoint csp = { 0 };
 		m_pCoordinateMapper->MapCameraPointToColorSpace(m_joints[JointType_SpineBase].Position, &csp);
-		circle(m_personImage, Point(csp.X, csp.Y), 3, RED_8U);
+		circle(m_personImage, Point(csp.X, csp.Y), 3, RED_16U);
 
 		WCHAR szStatusMessage[64 + MAX_PATH];
 		StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Saved files", NULL);

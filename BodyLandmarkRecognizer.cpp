@@ -320,14 +320,14 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	convertAndAddPoint(pointRightOuterQuad, JointType_HipRight, TP_RightOuterQuad);
 
 	// Footz
-	circle(m_matDepth, m_jointsDepthSpace[JointType_AnkleLeft], 5, GREEN_8U, FILLED, LINE_8);
-	circle(m_matDepth, m_jointsDepthSpace[JointType_AnkleRight], 5, GREEN_8U, FILLED, LINE_8);
-	circle(m_matDepth, m_jointsDepthSpace[JointType_FootLeft], 5, RED_8U, FILLED, LINE_8);
-	circle(m_matDepth, m_jointsDepthSpace[JointType_FootRight], 5, RED_8U, FILLED, LINE_8);
+	circle(m_matDepth, m_jointsDepthSpace[JointType_AnkleLeft], 5, GREEN_16U, FILLED, LINE_8);
+	circle(m_matDepth, m_jointsDepthSpace[JointType_AnkleRight], 5, GREEN_16U, FILLED, LINE_8);
+	circle(m_matDepth, m_jointsDepthSpace[JointType_FootLeft], 5, RED_16U, FILLED, LINE_8);
+	circle(m_matDepth, m_jointsDepthSpace[JointType_FootRight], 5, RED_16U, FILLED, LINE_8);
 
 	for (int i = 0; i < TP_Count; i++) {
-		circle(m_matColor, m_colorPoints[i], 5, BLUE, FILLED, LINE_8);
-		circle(m_matDepth, m_depthPoints[i], 5, BLUE_8U, FILLED, LINE_8);
+		circle(m_matColor, m_colorPoints[i], 5, BLUE_8U, FILLED, LINE_8);
+		circle(m_matDepth, m_depthPoints[i], 5, BLUE_16U, FILLED, LINE_8);
 	}
 
 	namedWindow("matDepth", WINDOW_NORMAL);
