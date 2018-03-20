@@ -254,8 +254,16 @@ void CColorBasics::Update()
 			return;
 		}
 
+		DepthSpacePoint dspLowestAnkle = { 0 };
+		if (m_joints[JointType_AnkleLeft].Position.Y < m_joints[JointType_AnkleRight].Position.Y) {
+			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleLeft].Position, &dspLowestAnkle);
+		}
+		else {
+			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleRight].Position, &dspLowestAnkle);
+		}
+
 		ComponentPolarizer componentPolarizer(m_depthBuffer, cDepthHeight, cDepthWidth);
-		componentPolarizer.Polarize(dspHipJoint.X, dspHipJoint.Y);
+		componentPolarizer.Polarize(dspHipJoint.X, dspHipJoint.Y, (int) dspLowestAnkle.Y);
 
 		BodyLandmarkRecognizer bodyLandmarkRecognizer(
 			m_depthBuffer,
@@ -274,8 +282,8 @@ void CColorBasics::Update()
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
 		ClothingMapper clothingMapper(&m_personImage);
-		clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
 		clothingMapper.ApplyClothing(ClothingType_Shorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, true);
+		clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
 
 		//// With triangles
 		//m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
@@ -528,6 +536,8 @@ bool CColorBasics::UpdateBody()
         {
             // ProcessBody(nTime, BODY_COUNT, ppBodies);
 
+			vector<vector<Joint>> allJoints;
+
             for (int i = 0; i < BODY_COUNT; ++i)
             {
                 IBody* pBody = ppBodies[i];
@@ -544,20 +554,38 @@ bool CColorBasics::UpdateBody()
 					continue;
 				}
 
-				Output("Found at least one body and it is tracked");
-
 				Joint joints[JointType_Count]; 
+				vector<Joint> currentJoints(JointType_Count);
 
 				hr = pBody->GetJoints(_countof(joints), joints);
 				if (SUCCEEDED(hr))
 				{
 					for (int j = 0; j < _countof(joints); ++j)
 					{
-						m_joints[j] = joints[j];
+						currentJoints[j] = joints[j];
 						atLeastOneBodyCaptured = true;
 					}
 				}
+
+				allJoints.push_back(currentJoints);
             }
+
+			// Select the body closest to the center of the kinect
+			float bestX = 999999999.9f;
+			int bestBodyIndex = 0;
+			for (int i = 0; i < allJoints.size(); i++) {
+				Joint currentSpineBase = allJoints[i][JointType_SpineBase];
+				if (abs(currentSpineBase.Position.X) < bestX) {
+			// Nice
+					bestX = abs(currentSpineBase.Position.X);
+					bestBodyIndex = i;
+				}
+			}
+
+			for (int j = 0; j < JointType_Count; ++j)
+			{
+				m_joints[j] = allJoints[bestBodyIndex][j];
+			}
         }
 
         for (int i = 0; i < _countof(ppBodies); ++i)

@@ -4,11 +4,12 @@
 
 #include <utility>
 
-#define DEFAULT_POLARIZATION_THRESHOLD 25
-
 class ComponentPolarizer {
-private:
+public:
+	ComponentPolarizer(UINT16 *grid, int gridHeight, int gridWidth);
+	void Polarize(int x, int y, int cutoffY);
 
+private:
 	// Member Variables
 	UINT16 *m_grid;
 	int m_gridHeight;
@@ -17,8 +18,4 @@ private:
 
 	// Functions
 	UINT16 valueAt(int x, int y);
-
-public:
-	ComponentPolarizer(UINT16 *grid, int gridHeight, int gridWidth);
-	void Polarize(int x, int y, int threshold = DEFAULT_POLARIZATION_THRESHOLD);
 };

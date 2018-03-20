@@ -268,6 +268,11 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	Point pointRightOuterQuad = findBoundary(m_matDepthRaw, quadRight, true, 0.0f);
 	convertAndAddPoint(pointRightOuterQuad, JointType_HipRight, TP_RightOuterQuad);
 
+	// Footz
+	circle(m_matDepth, m_jointsDepthSpace[JointType_AnkleLeft], 5, GREEN_8U, FILLED, LINE_8);
+	circle(m_matDepth, m_jointsDepthSpace[JointType_AnkleRight], 5, GREEN_8U, FILLED, LINE_8);
+	circle(m_matDepth, m_jointsDepthSpace[JointType_FootLeft], 5, RED_8U, FILLED, LINE_8);
+	circle(m_matDepth, m_jointsDepthSpace[JointType_FootRight], 5, RED_8U, FILLED, LINE_8);
 
 	for (int i = 0; i < TP_Count; i++) {
 		circle(m_matColor, m_colorPoints[i], 5, BLUE, FILLED, LINE_8);
