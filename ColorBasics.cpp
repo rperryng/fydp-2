@@ -368,7 +368,7 @@ void CColorBasics::UpdateColor()
                 pBuffer = m_pColorRGBX;
                 nBufferSize = cColorWidth * cColorHeight * sizeof(RGBQUAD);
                 //hr = pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(pBuffer), ColorImageFormat_Bgra);
-                pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(m_colorBuffer), ColorImageFormat_Bgra);}
+                hr = pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(m_colorBuffer), ColorImageFormat_Bgra);}
             else
             {
                 hr = E_FAIL;
@@ -669,6 +669,30 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
             {
                 m_bSaveScreenshot = true;
             }
+			else if(IDC_BUTTON_SHIRT_PREV == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
+            {
+				SetStatusMessage(L"Clicked previous shirt button", 5000, true);
+            }
+			else if(IDC_BUTTON_SHIRT_NEXT == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
+			{
+				SetStatusMessage(L"Clicked next shirt button", 5000, true);
+			}
+			else if(IDC_BUTTON_SHORTS_PREV == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
+			{
+				SetStatusMessage(L"Clicked previous shorts button", 5000, true);
+			}
+			else if(IDC_BUTTON_SHORTS_NEXT == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
+			{
+				SetStatusMessage(L"Clicked next shorts button", 5000, true);
+			}
+			else if(IDC_BUTTON_SWEATER_PREV == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
+			{
+				SetStatusMessage(L"Clicked previous sweater button", 5000, true);
+			}
+			else if(IDC_BUTTON_SWEATER_NEXT == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
+			{
+				SetStatusMessage(L"Clicked next sweater button", 5000, true);
+			}
             break;
     }
 
@@ -800,12 +824,7 @@ void CColorBasics::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int n
         //m_pDrawColor->Draw(reinterpret_cast<BYTE*>(pBuffer), cColorWidth * cColorHeight * sizeof(RGBQUAD));
         m_pDrawColor->Draw(reinterpret_cast<BYTE*>(m_personImage.data), cColorWidth * cColorHeight * sizeof(RGBQUAD));
 
-		if (m_bSaveScreenshot) {
-		}
     }
-}
-
-void CColorBasics::CopyClothingToBuffer() {
 }
 
 /// <summary>
