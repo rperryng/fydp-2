@@ -76,7 +76,7 @@ private:
 	DWORD                   m_nFramesSinceUpdate;
 	bool                    m_bSaveScreenshot;
 	bool					m_ranOnceAlready = false;
-	vector<Point>			m_shirtPoints;
+
 	vector<Point>			m_shortsPoints;
 	vector<Point>			m_sweaterPoints;
 	vector<Point>			m_pantsPoints;

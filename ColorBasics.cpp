@@ -459,29 +459,29 @@ void CColorBasics::UpdateDepth()
 			}
         }
 
-        if (SUCCEEDED(hr))
-        {
-			string OUTPUT_DIRECTORY = "C:\\Users\\Ryan\\~\\code\\fydp-kinect-app\\out\\depth";
-			string FILE_EXTENSION = "-bad.pgm";
-			time_t timestamp = time(nullptr);
-			char* filepath = new char[OUTPUT_DIRECTORY.length() + FILE_EXTENSION.length() + 32];
-			sprintf(filepath, "%s-%d%s", OUTPUT_DIRECTORY.c_str(), (int)timestamp, FILE_EXTENSION.c_str());
-			ofstream myfile(filepath, ios::out | ios::binary);
-
-			char* header = new char[200];
-			sprintf(header, "P5 %d %d %d\n", nWidth, nHeight, nDepthMaxDistance);
-			myfile << header;
-
-			// nBufferSize contains length of array rather than SIZE of array in bytes
-			for (int i = 0; i < nBufferSize; i++) {
-				myfile.write((char *) &m_depthBuffer[i], sizeof(UINT16));
-			}
-
-			myfile.close();
-
-			// DONT DEAD OPEN INSIDE
-			// ProcessDepth(nTime, pBuffer, nWidth, nHeight, nDepthMinReliableDistance, nDepthMaxDistance);
-        }
+        // if (SUCCEEDED(hr))
+        // {
+		// 	string OUTPUT_DIRECTORY = "C:\\Users\\Ryan\\~\\code\\fydp-kinect-app\\out\\depth";
+		// 	string FILE_EXTENSION = "-bad.pgm";
+		// 	time_t timestamp = time(nullptr);
+		// 	char* filepath = new char[OUTPUT_DIRECTORY.length() + FILE_EXTENSION.length() + 32];
+		// 	sprintf(filepath, "%s-%d%s", OUTPUT_DIRECTORY.c_str(), (int)timestamp, FILE_EXTENSION.c_str());
+		// 	ofstream myfile(filepath, ios::out | ios::binary);
+		//
+		// 	char* header = new char[200];
+		// 	sprintf(header, "P5 %d %d %d\n", nWidth, nHeight, nDepthMaxDistance);
+		// 	myfile << header;
+		//
+		// 	// nBufferSize contains length of array rather than SIZE of array in bytes
+		// 	for (int i = 0; i < nBufferSize; i++) {
+		// 		myfile.write((char *) &m_depthBuffer[i], sizeof(UINT16));
+		// 	}
+		//
+		// 	myfile.close();
+		//
+		// 	// DONT DEAD OPEN INSIDE
+		// 	// ProcessDepth(nTime, pBuffer, nWidth, nHeight, nDepthMinReliableDistance, nDepthMaxDistance);
+        // }
 
         SafeRelease(pFrameDescription);
     }
@@ -552,12 +552,12 @@ bool CColorBasics::UpdateBody()
 			for (int i = 0; i < allJoints.size(); i++) {
 				Joint currentSpineBase = allJoints[i][JointType_SpineBase];
 				if (abs(currentSpineBase.Position.X) < bestX) {
-			// Nice
+					// Nice
 					bestX = abs(currentSpineBase.Position.X);
 					bestBodyIndex = i;
 				}
 			}
-
+			// m_joints = allJoints[bestBodyIndex].data();
 			for (int j = 0; j < JointType_Count; ++j)
 			{
 				m_joints[j] = allJoints[bestBodyIndex][j];
@@ -670,36 +670,34 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 
         // Handle button press
         case WM_COMMAND:
-            // If it was for the screenshot control and a button clicked event, save a screenshot next frame
-            if (IDC_BUTTON_SCREENSHOT == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
-            {
-                m_bSaveScreenshot = true;
-            }
-			else if(IDC_BUTTON_SHIRT_PREV == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
-            {
-				SetStatusMessage(L"Clicked previous shirt button", 5000, true);
-            }
-			else if(IDC_BUTTON_SHIRT_NEXT == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
-			{
-				SetStatusMessage(L"Clicked next shirt button", 5000, true);
+            // Button clicked
+			if(BN_CLICKED == HIWORD(wParam)){
+				switch (LOWORD(wParam)){
+					// If it was for the screenshot control and a button clicked event, save a screenshot next frame
+					case IDC_BUTTON_SCREENSHOT:
+						m_bSaveScreenshot = true;
+						break;
+					case IDC_BUTTON_SHIRT_PREV:
+						SetStatusMessage(L"Clicked previous shirt button", 5000, true);
+						break;
+					case IDC_BUTTON_SHIRT_NEXT:
+						SetStatusMessage(L"Clicked next shirt button", 5000, true);
+						break;
+					case IDC_BUTTON_SWEATER_PREV:
+						SetStatusMessage(L"Clicked previous sweater button", 5000, true);
+						break;
+					case IDC_BUTTON_SWEATER_NEXT:
+						SetStatusMessage(L"Clicked next sweater button", 5000, true);
+						break;
+					case IDC_BUTTON_SHORTS_PREV:
+						SetStatusMessage(L"Clicked previous shorts button", 5000, true);
+						break;
+					case IDC_BUTTON_SHORTS_NEXT:
+						SetStatusMessage(L"Clicked next shorts button", 5000, true);
+						break;
+				}
 			}
-			else if(IDC_BUTTON_SHORTS_PREV == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
-			{
-				SetStatusMessage(L"Clicked previous shorts button", 5000, true);
-			}
-			else if(IDC_BUTTON_SHORTS_NEXT == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
-			{
-				SetStatusMessage(L"Clicked next shorts button", 5000, true);
-			}
-			else if(IDC_BUTTON_SWEATER_PREV == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
-			{
-				SetStatusMessage(L"Clicked previous sweater button", 5000, true);
-			}
-			else if(IDC_BUTTON_SWEATER_NEXT == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
-			{
-				SetStatusMessage(L"Clicked next sweater button", 5000, true);
-			}
-            break;
+			break;
     }
 
     return FALSE;
