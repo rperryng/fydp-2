@@ -27,7 +27,7 @@ void CColorBasics::Output(const char* szFormat, ...)
 /// <param name="lpCmdLine">command cutoffLine arguments</param>
 /// <param name="nCmdShow">whether to display minimized, maximized, or normally</param>
 /// <returns>status</returns>
-int APIENTRY wWinMain(    
+int APIENTRY wWinMain(
 	_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPWSTR lpCmdLine,
@@ -67,7 +67,7 @@ CColorBasics::CColorBasics() :
     // create heap storage for color pixel data in RGBX format
     m_pColorRGBX = new RGBQUAD[cColorWidth * cColorHeight];
 }
-  
+
 
 /// <summary>
 /// Destructor
@@ -133,7 +133,7 @@ int CColorBasics::Run(HINSTANCE hInstance, int nCmdShow)
         NULL,
         MAKEINTRESOURCE(IDD_APP),
         NULL,
-        (DLGPROC)CColorBasics::MessageRouter, 
+        (DLGPROC)CColorBasics::MessageRouter,
         reinterpret_cast<LPARAM>(this));
 
     // Show window
@@ -195,7 +195,7 @@ void CColorBasics::StoreBinaryData() {
 	fclose(file);
 }
 
-//Read pointsShirt from text file
+//Read points from text file
 vector<Point> CColorBasics::readClothingPoints(string filename) {
 	vector<Point> points;
 	ifstream ifs(filename.c_str());
@@ -278,12 +278,14 @@ void CColorBasics::Update()
 		bodyLandmarkRecognizer.buildTracePoints();
 		vector<Point> upperBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shirt);
 		vector<Point> lowerBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shorts);
+		vector<Point> sweaterBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Sweater);
 
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
 		ClothingMapper clothingMapper(&m_personImage);
 		clothingMapper.ApplyClothing(ClothingType_Shorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, true);
-		clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
+		// clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
+		clothingMapper.ApplyClothing(ClothingType_Sweater, m_sweaterImage, m_sweaterPoints, sweaterBodyTracePoints, true);
 
 		namedWindow("Result", WINDOW_NORMAL);
 		imshow("Result", m_personImage);
@@ -358,7 +360,7 @@ void CColorBasics::UpdateColor()
             {
                 pBuffer = m_pColorRGBX;
                 nBufferSize = cColorWidth * cColorHeight * sizeof(RGBQUAD);
-                //hr = pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(pBuffer), ColorImageFormat_Bgra);            
+                //hr = pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(pBuffer), ColorImageFormat_Bgra);
                 pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(m_colorBuffer), ColorImageFormat_Bgra);}
             else
             {
@@ -375,7 +377,7 @@ void CColorBasics::UpdateColor()
     }
 
     SafeRelease(pColorFrame);
-} 
+}
 
 void CColorBasics::UpdateDepth()
 {
@@ -439,7 +441,7 @@ void CColorBasics::UpdateDepth()
         if (SUCCEEDED(hr))
         {
 			UINT16* underlyingBuffer = NULL;
-            hr = pDepthFrame->AccessUnderlyingBuffer(&nBufferSize, &underlyingBuffer);            
+            hr = pDepthFrame->AccessUnderlyingBuffer(&nBufferSize, &underlyingBuffer);
 
 			for (int i = 0; i < nBufferSize; i++) {
 				UINT16 value = underlyingBuffer[i];
@@ -478,7 +480,7 @@ void CColorBasics::UpdateDepth()
     SafeRelease(pDepthFrame);
 }
 
-bool CColorBasics::UpdateBody() 
+bool CColorBasics::UpdateBody()
 {
     IBodyFrame* pBodyFrame = NULL;
     HRESULT hr = m_pBodyFrameReader->AcquireLatestFrame(&pBodyFrame);
@@ -519,7 +521,7 @@ bool CColorBasics::UpdateBody()
 					continue;
 				}
 
-				Joint joints[JointType_Count]; 
+				Joint joints[JointType_Count];
 				vector<Joint> currentJoints(JointType_Count);
 
 				hr = pBody->GetJoints(_countof(joints), joints);
@@ -574,7 +576,7 @@ bool CColorBasics::UpdateBody()
 LRESULT CALLBACK CColorBasics::MessageRouter(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     CColorBasics* pThis = NULL;
-    
+
     if (WM_INITDIALOG == uMsg)
     {
         pThis = reinterpret_cast<CColorBasics*>(lParam);
@@ -619,6 +621,10 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 			m_shortsImage.convertTo(m_shortsImage, CV_32F, 1.0 / 255.0f);
 			m_shortsPoints = readClothingPoints("./resources/red_shorts.jpg.txt");
 
+			m_sweaterImage = imread("./resources/grey_sweater.png", IMREAD_UNCHANGED);
+			m_sweaterImage.convertTo(m_sweaterImage, CV_32F, 1.0 / 255.0f);
+			m_sweaterPoints = readClothingPoints("./resources/grey_sweater.png.txt");
+
             // Bind application window handle
             m_hWnd = hWnd;
 
@@ -628,7 +634,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
             // Create and initialize a new Direct2D image renderer (take a look at ImageRenderer.h)
             // We'll use this to draw the data we receive from the Kinect to the screen
             m_pDrawColor = new ImageRenderer();
-            HRESULT hr = m_pDrawColor->Initialize(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), m_pD2DFactory, cColorWidth, cColorHeight, cColorWidth * sizeof(RGBQUAD)); 
+            HRESULT hr = m_pDrawColor->Initialize(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), m_pD2DFactory, cColorWidth, cColorHeight, cColorWidth * sizeof(RGBQUAD));
             if (FAILED(hr))
             {
                 SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
@@ -651,7 +657,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 
         // Handle button press
         case WM_COMMAND:
-            // If it was for the screenshot control and a button clicked event, save a screenshot next frame 
+            // If it was for the screenshot control and a button clicked event, save a screenshot next frame
             if (IDC_BUTTON_SCREENSHOT == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
             {
                 m_bSaveScreenshot = true;
@@ -743,7 +749,7 @@ HRESULT CColorBasics::InitializeDefaultSensor()
 /// <param name="nWidth">width (in pixels) of input image data</param>
 /// <param name="nHeight">height (in pixels) of input image data</param>
 /// </summary>
-void CColorBasics::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nHeight) 
+void CColorBasics::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nHeight)
 {
     if (m_hWnd)
     {
@@ -880,33 +886,33 @@ HRESULT CColorBasics::SaveBitmapToFile(BYTE* pBitmapBits, LONG lWidth, LONG lHei
     HANDLE hFile = CreateFileW(lpszFilePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
     // Return if error opening file
-    if (NULL == hFile) 
+    if (NULL == hFile)
     {
         return E_ACCESSDENIED;
     }
 
     DWORD dwBytesWritten = 0;
-    
+
     // Write the bitmap file header
     if (!WriteFile(hFile, &bfh, sizeof(bfh), &dwBytesWritten, NULL))
     {
         CloseHandle(hFile);
         return E_FAIL;
     }
-    
+
     // Write the bitmap info header
     if (!WriteFile(hFile, &bmpInfoHeader, sizeof(bmpInfoHeader), &dwBytesWritten, NULL))
     {
         CloseHandle(hFile);
         return E_FAIL;
     }
-    
+
     // Write the RGB Data
     if (!WriteFile(hFile, pBitmapBits, bmpInfoHeader.biSizeImage, &dwBytesWritten, NULL))
     {
         CloseHandle(hFile);
         return E_FAIL;
-    }    
+    }
 
     // Close the file
     CloseHandle(hFile);

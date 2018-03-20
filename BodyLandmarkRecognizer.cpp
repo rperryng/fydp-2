@@ -22,6 +22,32 @@ const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Shi
 	TP_RightHip
 };
 
+#define NUM_SWEATER_POINTS 22
+const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Shirt[] = {
+	TP_LeftNeck,
+	TP_RightNeck,
+	TP_LeftShoulder,
+	TP_RightShoulder,
+	TP_LeftOuterHem,
+	TP_RightOuterHem,
+	TP_LeftInnerHem,
+	TP_RightInnerHem,
+	TP_LeftOuterRib,
+	TP_RightOuterRib,
+	TP_LeftUpperHip,
+	TP_RightUpperHip,
+	TP_LeftHip,
+	TP_RightHip,
+	TP_LeftOuterElbow,
+	TP_RightOuterElbow,
+	TP_LeftInnerElbow,
+	TP_RightInnerElbow,
+	TP_LeftOuterWrist,
+	TP_RightOuterWrist,
+	TP_LeftInnerWrist,
+	TP_RightInnerWrist
+};
+
 #define NUM_SHORT_POINTS 9
 const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Shorts[] = {
 	TP_LeftUpperHip,
@@ -321,6 +347,9 @@ vector<Point> BodyLandmarkRecognizer::returnPointsFor(ClothingType clothingType)
 
 	case ClothingType_Shorts:
 		return filterPoints(cWhiteList_Shorts, NUM_SHORT_POINTS);
+
+	case ClothingType_Sweater:
+		return filterPoints(cWhiteList_Sweater, NUM_SWEATER_POINTS);
 
 	default:
 		throw new std::invalid_argument("Invalid clothingType passed to returnPointsFor in BodyLandmarkRecognizer");

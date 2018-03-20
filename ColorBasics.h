@@ -78,6 +78,7 @@ private:
 	bool					m_ranOnceAlready = false;
 	vector<Point>			m_shirtPoints;
 	vector<Point>			m_shortsPoints;
+	vector<Point>			m_sweaterPoints;
 
 	UINT16*					m_depthBuffer;
 	RGBQUAD*				m_colorBuffer;
@@ -87,6 +88,7 @@ private:
 	Mat						m_personImage;
 	Mat						m_shirtImage;
 	Mat						m_shortsImage;
+	Map						m_sweaterImage;
 	Mat						m_clothingPreview;
 
 	// Current Kinect
