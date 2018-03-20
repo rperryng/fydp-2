@@ -243,11 +243,12 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 
 	// Left Outer Rib
 	Point bellyButtonPoint = pointAverage(m_jointsDepthSpace[JointType_SpineMid], m_jointsDepthSpace[JointType_SpineBase]);
-	Point leftOuterRibTP = findBoundary(bellyButtonPoint, false, 0.0f);
+	Point highestRib = pointAverage(m_jointsDepthSpace[JointType_SpineMid], bellyButton);
+	Point leftOuterRibTP = findBoundary(highestRib, false, 0.0f);
 	convertAndAddPoint(leftOuterRibTP, JointType_SpineMid, TP_LeftOuterRib);
 
 	// Right Outer Rib
-	Point rightOuterRibTp = findBoundary(bellyButtonPoint, true, 0.0f);
+	Point rightOuterRibTp = findBoundary(highestRib, true, 0.0f);
 	convertAndAddPoint(rightOuterRibTp, JointType_SpineMid, TP_RightOuterRib);
 
 	// Left Elbow
