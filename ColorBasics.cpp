@@ -226,7 +226,7 @@ void CColorBasics::Update()
 {
 	UpdateColor();
 
-	bool loadBinaryData = false;
+	bool loadBinaryData = true;
 	bool storeBinaryData = false;
 
 	if (loadBinaryData && !m_ranOnceAlready) {
@@ -613,7 +613,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 			m_shirtImage = imread("./resources/superman_tshirt_transparent.png", IMREAD_UNCHANGED);
 			resize(m_shirtImage, m_clothingPreview, Size(400, (400 * m_shirtImage.size().height) / m_shirtImage.size().width));
 			m_shirtImage.convertTo(m_shirtImage, CV_32F, 1.0/255.0f);
-			m_shirtPoints = readClothingPoints("./resources/superman_tshirt.jpg.txt");
+			m_shirtPoints = readClothingPoints("./resources/superman_tshirt_transparent.png.txt");
 
 			m_shortsImage = imread("./resources/red_shorts_transparent.png", IMREAD_UNCHANGED);
 			m_shortsImage.convertTo(m_shortsImage, CV_32F, 1.0 / 255.0f);

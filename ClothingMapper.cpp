@@ -65,7 +65,7 @@ int** ClothingMapper::getTrianglesForClothingType(ClothingType clothingType) {
 		triangles[8] = new int[3] { 8, 9, 10 };
 		triangles[9] = new int[3] { 9, 10, 11};
 		triangles[10] = new int[3] { 10, 11, 13 };
-		triangles[11] = new int[3] { 0, 12, 13 };
+		triangles[11] = new int[3] { 10, 12, 13 };
 		break;
 
 	case ClothingType_Shorts:
