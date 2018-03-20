@@ -186,10 +186,8 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	convertAndAddPoint(pointHipRight, JointType_HipRight, TP_RightHip);
 
 	// Left Hem
-	Point pointLeftElbow = m_jointsDepthSpace[JointType_ElbowLeft];
-	pointLeftShoulder = m_jointsDepthSpace[JointType_ShoulderLeft];
-	Point leftBicep = pointAverage(pointLeftElbow, m_jointsDepthSpace[JointType_ShoulderLeft]);
-	slope = -1.0f / calculateSlope(pointLeftElbow, pointLeftShoulder);
+	Point leftBicep = pointAverage(m_jointsDepthSpace[JointType_ElbowLeft], m_jointsDepthSpace[JointType_ShoulderLeft]);
+	slope = -1.0f / calculateSlope(m_jointsDepthSpace[JointType_ElbowLeft], m_jointsDepthSpace[JointType_ShoulderLeft]);
 	// slope = -((float) (pointLeftElbow.x - pointLeftShoulder.x)) / (pointLeftElbow.y - pointLeftShoulder.y);
 	Point pointLeftOuterHem = findBoundary(m_matDepthRaw, leftBicep, false, slope);
 	convertAndAddPoint(pointLeftOuterHem, JointType_ElbowLeft, TP_LeftOuterHem);
@@ -199,10 +197,8 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	convertAndAddPoint(pointLeftInnerHem, JointType_ElbowLeft, TP_LeftInnerHem);
 
 	// Right Hem
-	Point pointRightElbow = m_jointsDepthSpace[JointType_ElbowRight];
-	pointRightShoulder = m_jointsDepthSpace[JointType_ShoulderRight];
-	Point rightBicep = pointAverage(pointRightElbow, pointRightShoulder);
-	slope = -1.0f / calculateSlope(pointRightElbow, pointRightShoulder);
+	Point rightBicep = pointAverage(m_jointsDepthSpace[JointType_ElbowRight], m_jointsDepthSpace[JointType_ShoulderRight]);
+	slope = -1.0f / calculateSlope(m_jointsDepthSpace[JointType_ElbowRight], m_jointsDepthSpace[JointType_ShoulderRight]);
 	// slope = -((float) (rightElbow.x - pointRightShoulder.x)) / (rightElbow.y - pointRightShoulder.y);
 	Point pointRightOuterHem = findBoundary(m_matDepthRaw, rightBicep, true, slope);
 	convertAndAddPoint(pointRightOuterHem, JointType_ElbowRight, TP_RightOuterHem);
@@ -226,13 +222,17 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	convertAndAddPoint(pointHipRightUpper, JointType_HipRight, TP_RightUpperHip);
 
 	// Left Outer Rib
-	Point jointSpineMid = m_jointsDepthSpace[JointType_SpineMid];
-	Point leftOuterRibTP = findBoundary(m_matDepthRaw, jointSpineMid, false, 0.0f);
+	Point bellyButtonPoint = pointAverage(m_jointsDepthSpace[JointType_SpineMid], m_jointsDepthSpace[JointType_SpineBase]);
+	Point leftOuterRibTP = findBoundary(m_matDepthRaw, bellyButtonPoint, false, 0.0f);
 	convertAndAddPoint(leftOuterRibTP, JointType_SpineMid, TP_LeftOuterRib);
 
 	// Right Outer Rib
-	Point rightOuterRibTp = findBoundary(m_matDepthRaw, jointSpineMid, true, 0.0f);
-	convertAndAddPoint(rightOuterRibTp, JointType_SpineMid, TP_RightOuterRib);
+	Point rightOuterRibTp = findBoundary(m_matDepthRaw, bellyButtonPoint, true, 0.0f);
+	convertAndAppPoint(rightOuterRibTp, JointType_SpineMid, TP_RightOuterRib);
+
+	// Left Elbow
+
+	// Right Elbow
 
 	// Pants
 	// poggers
