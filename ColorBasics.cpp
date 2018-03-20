@@ -254,16 +254,16 @@ void CColorBasics::Update()
 			return;
 		}
 
-		DepthSpacePoint dspLowetsAnkle = { 0 };
+		DepthSpacePoint dspLowestAnkle = { 0 };
 		if (m_joints[JointType_AnkleLeft].Position.Y < m_joints[JointType_AnkleRight].Position.Y) {
-			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleLeft].Position, &dspLowetsAnkle);
+			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleLeft].Position, &dspLowestAnkle);
 		}
 		else {
-			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleRight].Position, &dspLowetsAnkle);
+			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleRight].Position, &dspLowestAnkle);
 		}
 
 		ComponentPolarizer componentPolarizer(m_depthBuffer, cDepthHeight, cDepthWidth);
-		componentPolarizer.Polarize(dspHipJoint.X, dspHipJoint.Y, (int) dspLowetsAnkle.Y + 2);
+		componentPolarizer.Polarize(dspHipJoint.X, dspHipJoint.Y, (int) dspLowestAnkle.Y + 2);
 
 		BodyLandmarkRecognizer bodyLandmarkRecognizer(
 			m_depthBuffer,

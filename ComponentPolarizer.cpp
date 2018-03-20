@@ -6,7 +6,7 @@
 
 ComponentPolarizer::ComponentPolarizer(UINT16 *grid, int gridHeight, int gridWidth) {
 	m_grid = grid;
-	m_gridHeight = gridHeight; 
+	m_gridHeight = gridHeight;
 	m_gridWidth = gridWidth;
 	m_disjointSet = DisjointSet(gridHeight * gridWidth);
 }
@@ -18,18 +18,19 @@ UINT16 ComponentPolarizer::valueAt(int x, int y) {
 void ComponentPolarizer::Polarize(int componentX, int componentY, int cutoffY) {
 	UINT16 hipDepth = valueAt(componentX, componentY);
 
+	// Initial condition borders
 	for (int i = 1; i < m_gridWidth; i++) {
 		if (abs(valueAt(i, 0) - valueAt(i-1, 0)) < LOCAL_THRESHOLD) {
 			m_disjointSet.doUnion(i, i-1);
 		}
 	}
-
 	for (int i = 1; i < m_gridHeight; i++) {
 		if (abs(valueAt(0, i) - valueAt(0, i - 1)) < LOCAL_THRESHOLD) {
 			m_disjointSet.doUnion(i*m_gridWidth, (i - 1)*m_gridWidth);
 		}
 	}
 
+	// Whole image
 	for (int i = 1; i < cutoffY; i++) {
 		for (int j = 1; j < m_gridWidth; j++) {
 			if (abs(valueAt(j, i) - valueAt(j, i - 1)) < LOCAL_THRESHOLD) {
@@ -43,7 +44,7 @@ void ComponentPolarizer::Polarize(int componentX, int componentY, int cutoffY) {
 
 	int personComponent = m_disjointSet.find((m_gridWidth * componentY) + componentX);
 
-	for (int i = 0; i < m_gridHeight; i++) {
+	for (int i = 0; i < cutoffY; i++) {
 		for (int j = 0; j < m_gridWidth; j++) {
 			int num = m_disjointSet.find(m_gridWidth * i + j);
 
@@ -51,7 +52,6 @@ void ComponentPolarizer::Polarize(int componentX, int componentY, int cutoffY) {
 				m_grid[i * m_gridWidth + j] = USHRT_MAX;
 			}
 			else {
-				char zero = 0;
 				m_grid[i * m_gridWidth + j] = 0;
 			}
 		}
