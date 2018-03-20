@@ -87,6 +87,7 @@ private:
 	Mat						m_personImage;
 	Mat						m_shirtImage;
 	Mat						m_shortsImage;
+	Mat						m_clothingPreview;
 
 	// Current Kinect
 	IKinectSensor*          m_pKinectSensor;
@@ -106,6 +107,7 @@ private:
 	/// <summary>
 	/// Main processing function
 	/// </summary>
+	void					CopyClothingToBuffer();
 	void					LoadBinaryData();
 	void					StoreBinaryData();
 	void                    Update();

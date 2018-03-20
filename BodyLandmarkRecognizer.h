@@ -15,7 +15,7 @@ public:
 
 	std::vector<cv::Point> buildTracePoints();
 	std::vector<cv::Point> returnPointsFor(ClothingType clothingType);
-	cv::Point findBoundary(cv::Mat matDepth, cv::Point start, bool traverseRight, float slope = 0.0f);
+	cv::Point findBoundary(cv::Point start, bool traverseRight, float slope = 0.0f);
 
 private:
 	cv::Point m_tracePoints[29];
@@ -67,10 +67,8 @@ private:
 	static const TracePoints cWhiteList_Shorts[];
 
 	static const int cNumTracePointsShirt = 14;
-
 	static const int cNumTracePointsShorts = 9;
-
-	static const int cNumTracePointsShirt = 22;
+	static const int cNumTracePointsSweater = 22;
 
 	UINT16 *m_depthBuffer;
 	int m_depthBufferHeight, m_depthBufferWidth;

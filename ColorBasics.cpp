@@ -226,7 +226,7 @@ void CColorBasics::Update()
 {
 	UpdateColor();
 
-	bool loadBinaryData = true;
+	bool loadBinaryData = false;
 	bool storeBinaryData = false;
 
 	if (loadBinaryData && !m_ranOnceAlready) {
@@ -359,8 +359,7 @@ void CColorBasics::UpdateColor()
                 pBuffer = m_pColorRGBX;
                 nBufferSize = cColorWidth * cColorHeight * sizeof(RGBQUAD);
                 //hr = pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(pBuffer), ColorImageFormat_Bgra);            
-                pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(m_colorBuffer), ColorImageFormat_Bgra);            
-            }
+                pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(m_colorBuffer), ColorImageFormat_Bgra);}
             else
             {
                 hr = E_FAIL;
@@ -612,6 +611,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
         case WM_INITDIALOG:
         {
 			m_shirtImage = imread("./resources/superman_tshirt_transparent.png", IMREAD_UNCHANGED);
+			resize(m_shirtImage, m_clothingPreview, Size(400, (400 * m_shirtImage.size().height) / m_shirtImage.size().width));
 			m_shirtImage.convertTo(m_shirtImage, CV_32F, 1.0/255.0f);
 			m_shirtPoints = readClothingPoints("./resources/superman_tshirt.jpg.txt");
 
@@ -780,12 +780,19 @@ void CColorBasics::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int n
     // Make sure we've received valid data
     if (pBuffer && (nWidth == cColorWidth) && (nHeight == cColorHeight))
     {
+		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, pBuffer);
+		m_clothingPreview.copyTo(m_personImage(Rect(0, 0, m_clothingPreview.size().width, m_clothingPreview.size().height)));
+
         // Draw the data with Direct2D
-        m_pDrawColor->Draw(reinterpret_cast<BYTE*>(pBuffer), cColorWidth * cColorHeight * sizeof(RGBQUAD));
+        //m_pDrawColor->Draw(reinterpret_cast<BYTE*>(pBuffer), cColorWidth * cColorHeight * sizeof(RGBQUAD));
+        m_pDrawColor->Draw(reinterpret_cast<BYTE*>(m_personImage.data), cColorWidth * cColorHeight * sizeof(RGBQUAD));
 
 		if (m_bSaveScreenshot) {
 		}
     }
+}
+
+void CColorBasics::CopyClothingToBuffer() {
 }
 
 /// <summary>
