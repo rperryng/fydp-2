@@ -18,7 +18,7 @@ public:
 	cv::Point findBoundary(cv::Mat matDepth, cv::Point start, bool traverseRight, float slope = 0.0f);
 
 private:
-	cv::Point m_tracePoints[19];
+	cv::Point m_tracePoints[21];
 	typedef enum _TracePoints {
 		TP_LeftNeck,
 		TP_RightNeck,
@@ -26,27 +26,27 @@ private:
 		TP_RightShoulder,
 		TP_LeftOuterHem,
 		TP_LeftInnerHem,
-		TP_RightOuterHem,
 		TP_RightInnerHem,
-		TP_LeftHip,
-		TP_RightHip,
+		TP_RightOuterHem,
+		TP_LeftOuterRib,
+		TP_RightOuterRib,
 		TP_LeftUpperHip,
 		TP_RightUpperHip,
+		TP_LeftHip,
+		TP_RightHip,
 		TP_Crotch,
 		TP_LeftOuterKnee,
 		TP_LeftInnerKnee,
 		TP_RightOuterKnee,
 		TP_RightInnerKnee,
 		TP_LeftOuterQuad,
-		TP_RightOuterQuad,
-
-		TP_Count
+		TP_RightOuterQuad
 	} TracePoints;
 
 	static const TracePoints cWhiteList_Shirt[];
 	static const TracePoints cWhiteList_Shorts[];
 
-	static const int cNumTracePointsShirt = 12;
+	static const int cNumTracePointsShirt = 14;
 
 	static const int cNumTracePointsShorts = 9;
 

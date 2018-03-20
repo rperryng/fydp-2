@@ -4,7 +4,7 @@
 using namespace cv;
 using std::vector;
 
-#define NUM_SHIRT_POINTS 12
+#define NUM_SHIRT_POINTS 14
 const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Shirt[] = {
 	TP_LeftNeck,
 	TP_RightNeck,
@@ -14,10 +14,12 @@ const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Shi
 	TP_RightOuterHem,
 	TP_LeftInnerHem,
 	TP_RightInnerHem,
-	TP_LeftHip,
-	TP_RightHip,
+	TP_LeftOuterRib,
+	TP_RightOuterRib,
 	TP_LeftUpperHip,
-	TP_RightUpperHip
+	TP_RightUpperHip,
+	TP_LeftHip,
+	TP_RightHip
 };
 
 #define NUM_SHORT_POINTS 9
@@ -223,6 +225,14 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	pointHipRightUpper = findBoundary(m_matDepthRaw, pointHipRightUpper, true, 0.0f);
 	convertAndAddPoint(pointHipRightUpper, JointType_HipRight, TP_RightUpperHip);
 
+	// Left Outer Rib
+	Point jointSpineMid = m_jointsDepthSpace[JointType_SpineMid];
+	Point leftOuterRibTP = findBoundary(m_matDepthRaw, jointSpineMid, false, 0.0f);
+	convertAndAddPoint(leftOuterRibTP, JointType_SpineMid, TP_LeftOuterRib);
+	// Right Outer Rib
+	Point rightOuterRibTp = findBoundary(m_matDepthRaw, jointSpineMid, true, 0.0f);
+	convertAndAppPoint(rightOuterRibTp, JointType_SpineMid, TP_RightOUterRib);
+
 	// Pants
 	// poggers
 	// in the chat
@@ -293,10 +303,10 @@ vector<Point> BodyLandmarkRecognizer::returnPointsFor(ClothingType clothingType)
 	{
 	case ClothingType_Shirt:
 		return filterPoints(cWhiteList_Shirt, NUM_SHIRT_POINTS);
-		
+
 	case ClothingType_Shorts:
 		return filterPoints(cWhiteList_Shorts, NUM_SHORT_POINTS);
-		
+
 	default:
 		throw new std::invalid_argument("Invalid clothingType passed to returnPointsFor in BodyLandmarkRecognizer");
 	}

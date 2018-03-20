@@ -3,7 +3,7 @@
 class ClothingMapper {
 public:
 	ClothingMapper(cv::Mat *personImage);
-	
+
 	void ApplyClothing(
 		ClothingType clothingType,
 		cv::Mat matClothing,
@@ -23,8 +23,7 @@ private:
 		std::vector<std::pair<cv::Point, cv::Point>> cutoffLines,
 		cv::Mat clothingImage
 	);
-	
+
 	int getNumTrianglesForClothingType(ClothingType clothingType);
 	int** getTrianglesForClothingType(ClothingType clothingType);
 };
-
