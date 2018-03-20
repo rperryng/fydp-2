@@ -18,7 +18,7 @@ public:
 	cv::Point findBoundary(cv::Point start, bool traverseRight, float slope = 0.0f);
 
 private:
-	cv::Point m_tracePoints[29];
+	cv::Point m_tracePoints[33];
 	typedef enum _TracePoints {
 		// Neck
 		TP_LeftNeck,
@@ -59,6 +59,11 @@ private:
 		TP_LeftInnerWrist,
 		TP_RightOuterWrist,
 		TP_RightInnerWrist,
+		// Ankles
+		TP_LeftOuterAnkle,
+		TP_RightOuterAnkle,
+		TP_LeftInnerAnkle,
+		TP_RightInnerAnkle,
 
 		TP_Count
 	} TracePoints;
@@ -70,6 +75,7 @@ private:
 	static const int cNumTracePointsShirt = 14;
 	static const int cNumTracePointsShorts = 9;
 	static const int cNumTracePointsSweater = 22;
+	static const int cNumTracePointsPants = 13;
 
 	UINT16 *m_depthBuffer;
 	int m_depthBufferHeight, m_depthBufferWidth;

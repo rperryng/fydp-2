@@ -4,7 +4,6 @@
 using namespace cv;
 using std::vector;
 
-#define NUM_SHIRT_POINTS 14
 const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Shirt[] = {
 	TP_LeftNeck,
 	TP_RightNeck,
@@ -22,7 +21,6 @@ const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Shi
 	TP_RightHip
 };
 
-#define NUM_SWEATER_POINTS 22
 const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Sweater[] = {
 	TP_LeftNeck,
 	TP_RightNeck,
@@ -48,17 +46,32 @@ const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Swe
 	TP_RightInnerWrist
 };
 
-#define NUM_SHORT_POINTS 9
 const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Shorts[] = {
 	TP_LeftUpperHip,
 	TP_RightUpperHip,
 	TP_LeftOuterQuad,
-	TP_Crotch,
 	TP_RightOuterQuad,
+	TP_Crotch,
 	TP_LeftOuterKnee,
+	TP_RightOuterKnee,
+	TP_LeftInnerKnee,
+	TP_RightInnerKnee
+};
+
+const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Pants[] = {
+	TP_LeftUpperHip,
+	TP_RightUpperHip,
+	TP_LeftOuterQuad,
+	TP_RightOuterQuad,
+	TP_Crotch,
+	TP_LeftOuterKnee,
+	TP_RightOuterKnee,
 	TP_LeftInnerKnee,
 	TP_RightInnerKnee,
-	TP_RightOuterKnee
+	TP_LeftOuterAnkle,
+	TP_RightOuterAnkle,
+	TP_LeftInnerAnkle,
+	TP_RightInnerAnkle
 };
 
 BodyLandmarkRecognizer::BodyLandmarkRecognizer(
@@ -320,11 +333,25 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 	Point pointRightOuterQuad = findBoundary(quadRight, true, 0.0f);
 	convertAndAddPoint(pointRightOuterQuad, JointType_HipRight, TP_RightOuterQuad);
 
+	// Left Ankle
+	slope = -1.0f / calculateSlope(m_jointsDepthSpace[JointType_AnkleLeft], m_jointsDepthSpace[JointType_KneeLeft])
+	Point leftOuterAnkle = findBoundary(m_jointsDepthSpace[JointType_AnkleLeft], false, slope);
+	Point leftInnerAnkle = findBoundary(m_jointsDepthSpace[JointType_AnkleLeft], true, slope);
+	convertAndAddPoint(leftOuterAnkle, JointType_AnkleLeft, TP_LeftOuterAnkle);
+	convertAndAddPoint(leftInnerAnkle, JointType_AnkleLeft, TP_LeftInnerAnkle);
+
+	// Right Ankle
+	slope = -1.0f / calculateSlope(m_jointsDepthSpace[JointType_AnkleRight], m_jointsDepthSpace[JointType_KneeRight])
+	Point rightOuterAnkle = findBoundary(m_jointsDepthSpace[JointType_AnkleRight], true, slope);
+	Point rightInnerAnkle = findBoundary(m_jointsDepthSpace[JointType_AnkleRight], false, slope);
+	convertAndAddPoint(rightOuterAnkle, JointType_AnkleRight, TP_RightOuterAnkle);
+	convertAndAddPoint(rightInnerAnkle, JointType_AnkleRight, TP_RightInnerAnkle);
+
 	// Footz
-	circle(m_matDepth, m_jointsDepthSpace[JointType_AnkleLeft], 5, GREEN_16U, FILLED, LINE_8);
-	circle(m_matDepth, m_jointsDepthSpace[JointType_AnkleRight], 5, GREEN_16U, FILLED, LINE_8);
-	circle(m_matDepth, m_jointsDepthSpace[JointType_FootLeft], 5, RED_16U, FILLED, LINE_8);
-	circle(m_matDepth, m_jointsDepthSpace[JointType_FootRight], 5, RED_16U, FILLED, LINE_8);
+	// circle(m_matDepth, m_jointsDepthSpace[JointType_AnkleLeft], 5, GREEN_16U, FILLED, LINE_8);
+	// circle(m_matDepth, m_jointsDepthSpace[JointType_AnkleRight], 5, GREEN_16U, FILLED, LINE_8);
+	// circle(m_matDepth, m_jointsDepthSpace[JointType_FootLeft], 5, RED_16U, FILLED, LINE_8);
+	// circle(m_matDepth, m_jointsDepthSpace[JointType_FootRight], 5, RED_16U, FILLED, LINE_8);
 
 	for (int i = 0; i < TP_Count; i++) {
 		circle(m_matColor, m_colorPoints[i], 5, BLUE_8U, FILLED, LINE_8);
@@ -344,13 +371,16 @@ vector<Point> BodyLandmarkRecognizer::returnPointsFor(ClothingType clothingType)
 	switch (clothingType)
 	{
 	case ClothingType_Shirt:
-		return filterPoints(cWhiteList_Shirt, NUM_SHIRT_POINTS);
+		return filterPoints(cWhiteList_Shirt, cNumTracePointsShirt);
 
 	case ClothingType_Shorts:
-		return filterPoints(cWhiteList_Shorts, NUM_SHORT_POINTS);
+		return filterPoints(cWhiteList_Shorts, cNumTracePointsShorts);
 
 	case ClothingType_Sweater:
-		return filterPoints(cWhiteList_Sweater, NUM_SWEATER_POINTS);
+		return filterPoints(cWhiteList_Sweater, cNumTracePointsSweater);
+
+	case ClothingType_Pants:
+		return filterPoints(cWhileList_Pants, cNumTracePointsPants);
 
 	default:
 		throw new std::invalid_argument("Invalid clothingType passed to returnPointsFor in BodyLandmarkRecognizer");

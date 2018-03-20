@@ -45,6 +45,8 @@ int ClothingMapper::getNumTrianglesForClothingType(ClothingType clothingType) {
 
 	case ClothingType_Sweater:
 		return cNumTrianglesSweater;
+	case ClothingType_Pants:
+		return cNumTrianglesPants;
 
 	default:
 		throw new std::invalid_argument("Invalid clothing type passed to getNumTrianglesForClothingType");
@@ -72,13 +74,13 @@ int** ClothingMapper::getTrianglesForClothingType(ClothingType clothingType) {
 		break;
 
 	case ClothingType_Shorts:
-		triangles[0] = new int[3] { 0, 1, 3 };
-		triangles[1] = new int[3] { 0, 2, 3 };
+		triangles[0] = new int[3] { 0, 1, 4 };
+		triangles[1] = new int[3] { 0, 2, 4 };
 		triangles[2] = new int[3] { 1, 3, 4 };
-		triangles[3] = new int[3] { 2, 5, 3 };
-		triangles[4] = new int[3] { 3, 5, 6 };
-		triangles[5] = new int[3] { 3, 7, 8 };
-		triangles[6] = new int[3] { 3, 4, 8 };
+		triangles[3] = new int[3] { 2, 4, 5 };
+		triangles[4] = new int[3] { 3, 4, 6 };
+		triangles[5] = new int[3] { 4, 5, 7 };
+		triangles[6] = new int[3] { 4, 6, 8 };
 		break;
 
 	case ClothingType_Sweater:
@@ -102,6 +104,20 @@ int** ClothingMapper::getTrianglesForClothingType(ClothingType clothingType) {
 		triangles[17] = new int[3] { 5, 15, 17 };
 		triangles[18] = new int[3] { 15, 17, 21 };
 		triangles[19] = new int[3] { 15, 19, 21 };
+		break;
+
+	case ClothingType_Pants:
+		triangles[0] = new int[3] { 0, 1, 4 };
+		triangles[1] = new int[3] { 0, 2, 4 };
+		triangles[2] = new int[3] { 1, 3, 4 };
+		triangles[3] = new int[3] { 2, 4, 5 };
+		triangles[4] = new int[3] { 3, 4, 6 };
+		triangles[5] = new int[3] { 4, 5, 7 };
+		triangles[6] = new int[3] { 4, 6, 8 };
+		triangles[7] = new int[3] { 5, 7, 9 };
+		triangles[8] = new int[3] { 7, 9, 11 };
+		triangles[9] = new int[3] { 6, 8, 10 };
+		triangles[10] = new int[3] { 8, 10, 12 };
 		break;
 
 	default:
