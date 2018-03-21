@@ -112,10 +112,16 @@ private:
 	IBodyFrameReader*       m_pBodyFrameReader;
 
 	// Direct2D
+	ImageRenderer*          m_pDrawUpperPreview;
+	ImageRenderer*          m_pDrawLowerPreview;
 	ImageRenderer*          m_pDrawColor;
 	ID2D1Factory*           m_pD2DFactory;
 	RGBQUAD*                m_pColorRGBX;
 	RGBQUAD*                m_pDepthRGBX;
+
+	static const JointType  cImportantJoints[];
+
+	bool					m_sumTingWong;
 
 	/// <summary>
 	/// Main processing function
@@ -123,6 +129,8 @@ private:
 	void					CopyClothingToBuffer();
 	void					LoadBinaryData();
 	void					StoreBinaryData();
+	bool					sanityCheck();
+	void					tryUpdate();
 	void                    Update();
 	void				    UpdateColor();
 	void					UpdateDepth();
