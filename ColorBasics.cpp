@@ -7,6 +7,24 @@
 #include "stdafx.h"
 #include "ColorBasics.h"
 
+const JointType  CColorBasics::cImportantJoints[] = {
+	JointType_Neck,
+	JointType_ShoulderLeft,
+	JointType_ShoulderRight,
+	JointType_HipLeft,
+	JointType_HipRight,
+	JointType_ElbowLeft,
+	JointType_ElbowRight,
+	JointType_SpineMid,
+	JointType_SpineBase,
+	JointType_WristLeft,
+	JointType_WristRight,
+	JointType_KneeLeft,
+	JointType_KneeRight,
+	JointType_AnkleLeft,
+	JointType_AnkleRight,
+};
+
 void CColorBasics::Output(const char* szFormat, ...)
 {
 	char szBuff[1024];
@@ -219,11 +237,22 @@ void CColorBasics::WriteLayeredPng(String filename, Mat mat) {
 	imwrite(filename, output, compressionParams);
 }
 
-/// <summary>
-/// Main processing function
-/// </summary>
-void CColorBasics::Update()
-{
+bool CColorBasics::sanityCheck() {
+	// all joints exist
+	int num_important_joints = sizeof(cImportantJoints) / sizeof(JointType);
+	ColorSpacePoint csp = { 0 };
+	for (int i = 0; i < num_important_joints; i++) {
+		m_pCoordinateMapper->MapCameraPointToColorSpace(m_joints[(JointType)i].Position, &csp);
+		if (csp.X < 0 || csp.Y < 0 || csp.X > cDepthWidth || csp.Y > cDepthHeight) {
+			SetStatusMessage(L"Joints fall outside color space", 5000, true);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void CColorBasics::tryUpdate() {
 	UpdateColor();
 
 	bool loadBinaryData = false;
@@ -237,8 +266,8 @@ void CColorBasics::Update()
 	{
 		if (!loadBinaryData) {
 			if (!UpdateBody()) {
-				//SetStatusMessage("Where da bonez at", 5000, true);
-				Output("Where da bonez at");
+				SetStatusMessage(L"Where da bonez at", 5000, true);
+				m_bSaveScreenshot = false;
 				return;
 			}
 			UpdateDepth();
@@ -251,8 +280,7 @@ void CColorBasics::Update()
 		DepthSpacePoint dspHipJoint = { 0 };
 		m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[0].Position, &dspHipJoint);
 		if (isinf(dspHipJoint.X) || isinf(dspHipJoint.Y)) {
-			Output("Kinect not wok??");
-			//SetStatusMessage("Kinect not wok??", 5000, true);
+			SetStatusMessage(L"Coordinate mapper not available.  Jiggle da wire.", 5000, true);
 			return;
 		}
 
@@ -263,6 +291,18 @@ void CColorBasics::Update()
 		}
 		else {
 			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleRight].Position, &dspLowestAnkle);
+		}
+
+		if (sanityCheck()) {
+			m_bSaveScreenshot = false;
+			return;
+		}
+
+		int cutoffY = dspLowestAnkle.Y + 2;
+		if (cutoffY > cDepthHeight) {
+			SetStatusMessage(L"Ankle does not map to color space", 5000, true);
+			m_bSaveScreenshot = false;
+			return;
 		}
 
 		// Edge Detection
@@ -325,6 +365,23 @@ void CColorBasics::Update()
 		m_bSaveScreenshot = false;
 		m_ranOnceAlready = true;
 	}
+
+}
+
+/// <summary>
+/// Main processing function
+/// </summary>
+void CColorBasics::Update()
+{
+	try {
+		tryUpdate();
+	}
+	catch (...) {
+		SetStatusMessage(L"Something went wrong. Please try again.", 5000, true);
+		// Nice try, kiddo
+	}
+
+	m_bSaveScreenshot = false;
 }
 
 void CColorBasics::UpdateColor()
@@ -535,7 +592,7 @@ bool CColorBasics::UpdateBody()
 
 			// Select the body closest to the center of the kinect
 			float bestX = 999999999.9f;
-			int bestBodyIndex = 0;
+			int bestBodyIndex = -1;
 			for (int i = 0; i < allJoints.size(); i++) {
 				Joint currentSpineBase = allJoints[i][JointType_SpineBase];
 				if (abs(currentSpineBase.Position.X) < bestX) {
@@ -545,9 +602,11 @@ bool CColorBasics::UpdateBody()
 				}
 			}
 			// m_joints = allJoints[bestBodyIndex].data();
-			for (int j = 0; j < JointType_Count; ++j)
-			{
-				m_joints[j] = allJoints[bestBodyIndex][j];
+			if (atLeastOneBodyCaptured) {
+				for (int j = 0; j < JointType_Count; ++j)
+				{
+					m_joints[j] = allJoints[bestBodyIndex][j];
+				}
 			}
         }
 
@@ -640,6 +699,12 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
                 SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
             }
 
+            m_pDrawUpperPreview = new ImageRenderer();
+            m_pDrawUpperPreview->Initialize(GetDlgItem(m_hWnd, IDC_UPPER_PREVIEW), m_pD2DFactory, 100, 100, 100 * sizeof(RGBQUAD));
+
+            m_pDrawLowerPreview = new ImageRenderer();
+            m_pDrawLowerPreview->Initialize(GetDlgItem(m_hWnd, IDC_LOWER_PREVIEW), m_pD2DFactory, 100, 100, 100 * sizeof(RGBQUAD));
+
             // Get and initialize the default Kinect sensor
             InitializeDefaultSensor();
         }
@@ -672,7 +737,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						}
 						clothingFilename = m_upperBodyImageNames[m_upperClothingIndex];
 						m_upperImage = imread(clothingFilename, IMREAD_UNCHANGED);
-						resize(m_upperImage, m_upperClothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
+						resize(m_upperImage, m_upperClothingPreview, Size(100, 100));
 						m_upperImage.convertTo(m_upperImage, CV_32F, 1.0/255.0f);
 						m_upperPoints = readClothingPoints(clothingFilename + ".txt");
 
@@ -686,7 +751,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						m_upperClothingIndex = (m_upperClothingIndex + 1) % m_upperBodyImageNames.size();
 						clothingFilename = m_upperBodyImageNames[m_upperClothingIndex];
 						m_upperImage = imread(clothingFilename, IMREAD_UNCHANGED);
-						resize(m_upperImage, m_upperClothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
+						resize(m_upperImage, m_upperClothingPreview, Size(100, 100));
 						m_upperImage.convertTo(m_upperImage, CV_32F, 1.0/255.0f);
 						m_upperPoints = readClothingPoints(clothingFilename + ".txt");
 						if(clothingFilename.find("tshirt") != string::npos){
@@ -702,7 +767,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						}
 						clothingFilename = m_lowerBodyImageNames[m_lowerClothingIndex];
 						m_lowerImage = imread(clothingFilename, IMREAD_UNCHANGED);
-						resize(m_lowerImage, m_lowerClothingPreview, Size(400, (400 * m_lowerImage.size().height) / m_lowerImage.size().width));
+						resize(m_lowerImage, m_lowerClothingPreview, Size(100, 100));
 						m_lowerImage.convertTo(m_lowerImage, CV_32F, 1.0/255.0f);
 						m_lowerPoints = readClothingPoints(clothingFilename + ".txt");
 						if(clothingFilename.find("shorts") != string::npos){
@@ -715,7 +780,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						m_lowerClothingIndex = (m_lowerClothingIndex + 1) % m_lowerBodyImageNames.size();
 						clothingFilename = m_lowerBodyImageNames[m_lowerClothingIndex];
 						m_lowerImage = imread(clothingFilename, IMREAD_UNCHANGED);
-						resize(m_lowerImage, m_lowerClothingPreview, Size(400, (400 * m_lowerImage.size().height) / m_lowerImage.size().width));
+						resize(m_lowerImage, m_lowerClothingPreview, Size(100, 100));
 						m_lowerImage.convertTo(m_lowerImage, CV_32F, 1.0/255.0f);
 						m_lowerPoints = readClothingPoints(clothingFilename + ".txt");
 						if(clothingFilename.find("shorts") != string::npos){
@@ -725,6 +790,9 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						}
 						break;
 				}
+
+				m_pDrawUpperPreview->Draw(reinterpret_cast<BYTE*>(m_upperClothingPreview.data), 100 * 100 * sizeof(RGBQUAD));
+				m_pDrawLowerPreview->Draw(reinterpret_cast<BYTE*>(m_lowerClothingPreview.data), 100 * 100 * sizeof(RGBQUAD));
 			}
 			break;
     }
@@ -851,31 +919,9 @@ void CColorBasics::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int n
     if (pBuffer && (nWidth == cColorWidth) && (nHeight == cColorHeight))
     {
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, pBuffer);
-		m_upperClothingPreview.copyTo(
-			m_personImage(
-				Rect(
-					0, 
-					0, 
-					m_upperClothingPreview.size().width, 
-					m_upperClothingPreview.size().height
-				)
-			)
-		);
-		m_lowerClothingPreview.copyTo(
-			m_personImage(
-				Rect(
-					cColorWidth - m_lowerClothingPreview.size().width,
-					0,
-					m_lowerClothingPreview.size().width,
-					m_lowerClothingPreview.size().height
-				)
-			)
-		);
-
         // Draw the data with Direct2D
         //m_pDrawColor->Draw(reinterpret_cast<BYTE*>(pBuffer), cColorWidth * cColorHeight * sizeof(RGBQUAD));
         m_pDrawColor->Draw(reinterpret_cast<BYTE*>(m_personImage.data), cColorWidth * cColorHeight * sizeof(RGBQUAD));
-
     }
 }
 

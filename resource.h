@@ -15,8 +15,10 @@
 #define IDC_BUTTON_SCREENSHOT           1002
 #define IDC_BUTTON_UPPER_PREV           1003
 #define IDC_BUTTON_UPPER_NEXT           1004
-#define IDC_BUTTON_LOWER_PREV          1005
-#define IDC_BUTTON_LOWER_NEXT          1006
+#define IDC_BUTTON_LOWER_PREV           1005
+#define IDC_BUTTON_LOWER_NEXT           1006
+#define IDC_UPPER_PREVIEW				1007
+#define IDC_LOWER_PREVIEW				1008
 
 // Next default values for new objects
 //
