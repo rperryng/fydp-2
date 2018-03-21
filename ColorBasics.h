@@ -81,6 +81,7 @@ private:
 	vector<Point>			m_shortsPoints;
 	vector<Point>			m_sweaterPoints;
 	vector<Point>			m_pantsPoints;
+	vector<Point>			m_fullBodyPoints;
 
 	UINT16*					m_depthBuffer;
 	RGBQUAD*				m_colorBuffer;
@@ -92,6 +93,7 @@ private:
 	Mat						m_shortsImage;
 	Mat						m_sweaterImage;
 	Mat						m_pantsImage;
+	Mat						m_fullBodyImage;
 	Mat						m_clothingPreview;
 
 	// Current Kinect

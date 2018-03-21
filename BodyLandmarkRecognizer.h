@@ -72,11 +72,13 @@ private:
 	static const TracePoints cWhiteList_Shorts[];
 	static const TracePoints cWhiteList_Sweater[];
 	static const TracePoints cWhiteList_Pants[];
+	static const TracePoints cWhiteList_FullBody[];
 
 	static const int cNumTracePointsShirt = 14;
 	static const int cNumTracePointsShorts = 9;
 	static const int cNumTracePointsSweater = 22;
 	static const int cNumTracePointsPants = 13;
+	static const int cNumTracePointsFullBody = 33;
 
 	UINT16 *m_depthBuffer;
 	int m_depthBufferHeight, m_depthBufferWidth;

@@ -276,19 +276,20 @@ void CColorBasics::Update()
 			m_pCoordinateMapper
 		);
 		bodyLandmarkRecognizer.buildTracePoints();
-		vector<Point> upperBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shirt);
-		vector<Point> lowerBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shorts);
-		vector<Point> pantsBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Pants);
-		vector<Point> sweaterBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Sweater);
+		// vector<Point> upperBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shirt);
+		// vector<Point> lowerBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shorts);
+		// vector<Point> pantsBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Pants);
+		// vector<Point> sweaterBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Sweater);
+		vector<Point> fullBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_FullBody);
 
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
 		ClothingMapper clothingMapper(&m_personImage);
 		// clothingMapper.ApplyClothing(ClothingType_Shorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, true);
-		clothingMapper.ApplyClothing(ClothingType_Pants, m_pantsImage, m_pantsPoints, pantsBodyTracePoints, false);
+		// clothingMapper.ApplyClothing(ClothingType_Pants, m_pantsImage, m_pantsPoints, pantsBodyTracePoints, false);
 		// clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
-		clothingMapper.ApplyClothing(ClothingType_Sweater, m_sweaterImage, m_sweaterPoints, sweaterBodyTracePoints, false);
-
+		// clothingMapper.ApplyClothing(ClothingType_Sweater, m_sweaterImage, m_sweaterPoints, sweaterBodyTracePoints, false);
+		clothingMapper.ApplyClothing(ClothingType_FullBody, m_fullBodyImage, m_fullBodyPoints, fullBodyTracePoints, false);
 		//for (int i = 0; i < JointType_Count; i++) {
 		//	Joint joint = m_joints[i];
 		//	ColorSpacePoint csp = { 0 };
@@ -637,6 +638,10 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 			m_pantsImage = imread("./resources/lower/navy_pants.png", IMREAD_UNCHANGED);
 			m_pantsImage.convertTo(m_pantsImage, CV_32F, 1.0 / 255.0f);
 			m_pantsPoints = readClothingPoints("./resources/lower/navy_pants.png.txt");
+
+			m_fullBodyImage = imread("./resources/ironman.png", IMREAD_UNCHANGED);
+			m_fullBodyImage.convertTo(m_fullBodyImage, CV_32F, 1.0 / 255.0f);
+			m_fullBodyPoints = readClothingPoints("./resources/ironman.png.txt");
 
             // Bind application window handle
             m_hWnd = hWnd;

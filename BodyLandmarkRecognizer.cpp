@@ -74,6 +74,42 @@ const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_Pan
 	TP_RightInnerAnkle
 };
 
+const BodyLandmarkRecognizer::TracePoints BodyLandmarkRecognizer::cWhiteList_FullBody[] = {
+	TP_LeftNeck,
+	TP_RightNeck,
+	TP_LeftShoulder,
+	TP_RightShoulder,
+	TP_LeftOuterHem,
+	TP_RightOuterHem,
+	TP_LeftInnerHem,
+	TP_RightInnerHem,
+	TP_LeftOuterRib,
+	TP_RightOuterRib,
+	TP_LeftUpperHip,
+	TP_RightUpperHip,
+	TP_LeftHip,
+	TP_RightHip,
+	TP_LeftOuterElbow,
+	TP_RightOuterElbow,
+	TP_LeftInnerElbow,
+	TP_RightInnerElbow,
+	TP_LeftOuterWrist,
+	TP_RightOuterWrist,
+	TP_LeftInnerWrist,
+	TP_RightInnerWrist,
+	TP_LeftOuterQuad,
+	TP_RightOuterQuad,
+	TP_Crotch,
+	TP_LeftOuterKnee,
+	TP_RightOuterKnee,
+	TP_LeftInnerKnee,
+	TP_RightInnerKnee,
+	TP_LeftOuterAnkle,
+	TP_RightOuterAnkle,
+	TP_LeftInnerAnkle,
+	TP_RightInnerAnkle
+};
+
 BodyLandmarkRecognizer::BodyLandmarkRecognizer(
 	UINT16 *depthBuffer,
 	int depthBufferHeight,
@@ -381,6 +417,9 @@ vector<Point> BodyLandmarkRecognizer::returnPointsFor(ClothingType clothingType)
 
 	case ClothingType_Pants:
 		return filterPoints(cWhiteList_Pants, cNumTracePointsPants);
+
+	case ClothingType_Pants:
+		return filterPoints(cWhiteList_FullBody, cNumTracePointsFullBody);
 
 	default:
 		throw new std::invalid_argument("Invalid clothingType passed to returnPointsFor in BodyLandmarkRecognizer");

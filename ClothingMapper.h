@@ -17,6 +17,8 @@ private:
 	static const int cNumTrianglesShorts = 7;
 	static const int cNumTrianglesSweater = 20;
 	static const int cNumTrianglesPants = 11;
+	static const int cNumTrianglesFullBody = 31;
+	
 	cv::Mat m_personImage;
 
 	void MapTriangle(
