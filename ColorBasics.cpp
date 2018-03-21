@@ -603,14 +603,15 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
         case WM_INITDIALOG:
         {
 			glob("./resources/upper/*.png", m_upperBodyImageNames, false);
-			glob("./resources/lower/*.png", m_upperBodyImageNames, false);
+			glob("./resources/lower/*.png", m_lowerBodyImageNames, false);
 
 			m_upperImage = imread("./resources/upper/superman_tshirt.png", IMREAD_UNCHANGED);
-			resize(m_upperImage, m_clothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
+			resize(m_upperImage, m_upperClothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
 			m_upperImage.convertTo(m_upperImage, CV_32F, 1.0/255.0f);
 			m_upperPoints = readClothingPoints("./resources/upper/superman_tshirt.png.txt");
 
 			m_lowerImage = imread("./resources/lower/blue_shorts.png", IMREAD_UNCHANGED);
+			resize(m_lowerImage, m_lowerClothingPreview, Size(400, (400 * m_lowerImage.size().height) / m_lowerImage.size().width));
 			m_lowerImage.convertTo(m_lowerImage, CV_32F, 1.0 / 255.0f);
 			m_lowerPoints = readClothingPoints("./resources/lower/blue_shorts.png.txt");
 
@@ -664,7 +665,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						}
 						string clothingFilename = m_upperBodyImageNames[m_upperClothingIndex];
 						m_upperImage = imread(clothingFilename, IMREAD_UNCHANGED);
-						resize(m_upperImage, m_clothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
+						resize(m_upperImage, m_upperClothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
 						m_upperImage.convertTo(m_upperImage, CV_32F, 1.0/255.0f);
 						m_upperPoints = readClothingPoints(clothingFilename + ".txt");
 						if(clothingFileName.find("tshirt") != string::npos){
@@ -677,7 +678,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						m_upperClothingIndex = (m_upperClothingIndex + 1) % m_upperBodyImageNames.size();
 						string clothingFilename = m_upperBodyImageNames[m_upperClothingIndex];
 						m_upperImage = imread(clothingFilename, IMREAD_UNCHANGED);
-						resize(m_upperImage, m_clothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
+						resize(m_upperImage, m_upperClothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
 						m_upperImage.convertTo(m_upperImage, CV_32F, 1.0/255.0f);
 						m_upperPoints = readClothingPoints(clothingFilename + ".txt");
 						if(clothingFileName.find("tshirt") != string::npos){
@@ -693,6 +694,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						}
 						string clothingFilename = m_lowerBodyImageNames[m_lowerClothingIndex];
 						m_lowerImage = imread(clothingFilename, IMREAD_UNCHANGED);
+						resize(m_lowerImage, m_lowerClothingPreview, Size(400, (400 * m_lowerImage.size().height) / m_lowerImage.size().width));
 						m_lowerImage.convertTo(m_lowerImage, CV_32F, 1.0/255.0f);
 						m_lowerPoints = readClothingPoints(clothingFilename + ".txt");
 						if(clothingFileName.find("shorts") != string::npos){
@@ -705,6 +707,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						m_lowerClothingIndex = (m_lowerClothingIndex + 1) % m_lowerBodyImageNames.size();
 						string clothingFilename = m_lowerBodyImageNames[m_lowerClothingIndex];
 						m_lowerImage = imread(clothingFilename, IMREAD_UNCHANGED);
+						resize(m_lowerImage, m_lowerClothingPreview, Size(400, (400 * m_lowerImage.size().height) / m_lowerImage.size().width));
 						m_lowerImage.convertTo(m_lowerImage, CV_32F, 1.0/255.0f);
 						m_lowerPoints = readClothingPoints(clothingFilename + ".txt");
 						if(clothingFileName.find("shorts") != string::npos){
@@ -840,7 +843,17 @@ void CColorBasics::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int n
     if (pBuffer && (nWidth == cColorWidth) && (nHeight == cColorHeight))
     {
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, pBuffer);
-		m_clothingPreview.copyTo(m_personImage(Rect(0, 0, m_clothingPreview.size().width, m_clothingPreview.size().height)));
+		m_upperClothingPreview.copyTo(m_personImage(Rect(0, 0, m_upperClothingPreview.size().width, m_upperClothingPreview.size().height)));
+		m_lowerClothingPreview.copyTo(
+			m_personImage(
+				Rect(
+					0,
+					m_upperClothingPreview.size().height,
+					m_lowerClothingPreview.size().width,
+					m_lowerClothingPreview.size().height
+				)
+			)
+		);
 
         // Draw the data with Direct2D
         //m_pDrawColor->Draw(reinterpret_cast<BYTE*>(pBuffer), cColorWidth * cColorHeight * sizeof(RGBQUAD));

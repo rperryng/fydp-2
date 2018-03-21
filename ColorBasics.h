@@ -99,7 +99,8 @@ private:
 	Mat						m_upperImage;
 	Mat						m_lowerImage;
 	Mat						m_fullBodyClothingImage;
-	Mat						m_clothingPreview;
+	Mat						m_upperClothingPreview;
+	Mat						m_lowerClothingPreview;
 
 	// Current Kinect
 	IKinectSensor*          m_pKinectSensor;
