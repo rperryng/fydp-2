@@ -282,19 +282,15 @@ void CColorBasics::Update()
 		);
 		bodyLandmarkRecognizer.buildTracePoints();
 
-		 vector<Point> upperBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shirt);
-		 vector<Point> lowerBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shorts);
-		// vector<Point> pantsBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Pants);
-		// vector<Point> sweaterBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Sweater);
+		vector<Point> upperBodyPoints = bodyLandmarkRecognizer.returnPointsFor(m_upperClothingType);
+		vector<Point> lowerBodyPoints = bodyLandmarkRecognizer.returnPointsFor(m_lowerClothingType);
 		vector<Point> fullBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_FullBody);
 
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
 		ClothingMapper clothingMapper(&m_personImage);
-		 clothingMapper.ApplyClothing(ClothingType_Shorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, true);
-		// clothingMapper.ApplyClothing(ClothingType_Pants, m_pantsImage, m_pantsPoints, pantsBodyTracePoints, false);
-		 clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, false);
-		// clothingMapper.ApplyClothing(ClothingType_Sweater, m_sweaterImage, m_sweaterPoints, sweaterBodyTracePoints, false);
+		clothingMapper.ApplyClothing(m_lowerClothingType, m_lowerImage, m_lowerPoints, lowerBodyPoints, false);
+		clothingMapper.ApplyClothing(m_upperClothingType, m_upperImage, m_upperPoints, upperBodyPoints, false);
 		//clothingMapper.ApplyClothing(ClothingType_FullBody, m_fullBodyClothingImage, m_fullBodyPoints, fullBodyTracePoints, false);
 		//for (int i = 0; i < JointType_Count; i++) {
 		//	Joint joint = m_joints[i];
@@ -606,22 +602,17 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
     {
         case WM_INITDIALOG:
         {
-			m_shirtImage = imread("./resources/upper/superman_tshirt.png", IMREAD_UNCHANGED);
-			resize(m_shirtImage, m_clothingPreview, Size(400, (400 * m_shirtImage.size().height) / m_shirtImage.size().width));
-			m_shirtImage.convertTo(m_shirtImage, CV_32F, 1.0/255.0f);
-			m_shirtPoints = readClothingPoints("./resources/upper/superman_tshirt.png.txt");
+			glob("./resources/upper/*.png", m_upperBodyImageNames, false);
+			glob("./resources/lower/*.png", m_upperBodyImageNames, false);
 
-			m_shortsImage = imread("./resources/lower/blue_shorts.png", IMREAD_UNCHANGED);
-			m_shortsImage.convertTo(m_shortsImage, CV_32F, 1.0 / 255.0f);
-			m_shortsPoints = readClothingPoints("./resources/lower/blue_shorts.png.txt");
+			m_upperImage = imread("./resources/upper/superman_tshirt.png", IMREAD_UNCHANGED);
+			resize(m_upperImage, m_clothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
+			m_upperImage.convertTo(m_upperImage, CV_32F, 1.0/255.0f);
+			m_upperPoints = readClothingPoints("./resources/upper/superman_tshirt.png.txt");
 
-			m_sweaterImage = imread("./resources/upper/grey_sweater.png", IMREAD_UNCHANGED);
-			m_sweaterImage.convertTo(m_sweaterImage, CV_32F, 1.0 / 255.0f);
-			m_sweaterPoints = readClothingPoints("./resources/upper/grey_sweater.png.txt");
-
-			m_pantsImage = imread("./resources/lower/navy_pants.png", IMREAD_UNCHANGED);
-			m_pantsImage.convertTo(m_pantsImage, CV_32F, 1.0 / 255.0f);
-			m_pantsPoints = readClothingPoints("./resources/lower/navy_pants.png.txt");
+			m_lowerImage = imread("./resources/lower/blue_shorts.png", IMREAD_UNCHANGED);
+			m_lowerImage.convertTo(m_lowerImage, CV_32F, 1.0 / 255.0f);
+			m_lowerPoints = readClothingPoints("./resources/lower/blue_shorts.png.txt");
 
 			m_fullBodyClothingImage = imread("./resources/full/ironman.png", IMREAD_UNCHANGED);
 			m_fullBodyClothingImage.convertTo(m_fullBodyClothingImage, CV_32F, 1.0 / 255.0f);
@@ -666,23 +657,61 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 					case IDC_BUTTON_SCREENSHOT:
 						m_bSaveScreenshot = true;
 						break;
-					case IDC_BUTTON_SHIRT_PREV:
-						SetStatusMessage(L"Clicked previous shirt button", 5000, true);
+					case IDC_BUTTON_UPPER_PREV:
+						m_upperClothingIndex--;
+						if(m_upperClothingIndex < 0){
+							m_upperClothingIndex += m_upperBodyImageNames.size();
+						}
+						string clothingFilename = m_upperBodyImageNames[m_upperClothingIndex];
+						m_upperImage = imread(clothingFilename, IMREAD_UNCHANGED);
+						resize(m_upperImage, m_clothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
+						m_upperImage.convertTo(m_upperImage, CV_32F, 1.0/255.0f);
+						m_upperPoints = readClothingPoints(clothingFilename + ".txt");
+						if(clothingFileName.find("tshirt") != string::npos){
+							m_upperClothingType = ClothingType_Shirt;
+						} else if(clothingFileName.find("sweater") != string::npos){
+							m_upperClothingType = ClothingType_Sweater;
+						}
 						break;
-					case IDC_BUTTON_SHIRT_NEXT:
-						SetStatusMessage(L"Clicked next shirt button", 5000, true);
+					case IDC_BUTTON_UPPER_NEXT:
+						m_upperClothingIndex = (m_upperClothingIndex + 1) % m_upperBodyImageNames.size();
+						string clothingFilename = m_upperBodyImageNames[m_upperClothingIndex];
+						m_upperImage = imread(clothingFilename, IMREAD_UNCHANGED);
+						resize(m_upperImage, m_clothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
+						m_upperImage.convertTo(m_upperImage, CV_32F, 1.0/255.0f);
+						m_upperPoints = readClothingPoints(clothingFilename + ".txt");
+						if(clothingFileName.find("tshirt") != string::npos){
+							m_upperClothingType = ClothingType_Shirt;
+						} else if(clothingFileName.find("sweater") != string::npos){
+							m_upperClothingType = ClothingType_Sweater;
+						}
 						break;
-					case IDC_BUTTON_SWEATER_PREV:
-						SetStatusMessage(L"Clicked previous sweater button", 5000, true);
+					case IDC_BUTTON_LOWER_PREV:
+						m_lowerClothingIndex--;
+						if(m_lowerClothingIndex < 0){
+							m_lowerClothingIndex += m_lowerBodyImageNames.size();
+						}
+						string clothingFilename = m_lowerBodyImageNames[m_lowerClothingIndex];
+						m_lowerImage = imread(clothingFilename, IMREAD_UNCHANGED);
+						m_lowerImage.convertTo(m_lowerImage, CV_32F, 1.0/255.0f);
+						m_lowerPoints = readClothingPoints(clothingFilename + ".txt");
+						if(clothingFileName.find("shorts") != string::npos){
+							m_lowerClothingType = ClothingType_Shorts;
+						} else if(clothingFileName.find("pants") != string::npos){
+							m_lowerClothingType = ClothingType_Pants;
+						}
 						break;
-					case IDC_BUTTON_SWEATER_NEXT:
-						SetStatusMessage(L"Clicked next sweater button", 5000, true);
-						break;
-					case IDC_BUTTON_SHORTS_PREV:
-						SetStatusMessage(L"Clicked previous shorts button", 5000, true);
-						break;
-					case IDC_BUTTON_SHORTS_NEXT:
-						SetStatusMessage(L"Clicked next shorts button", 5000, true);
+					case IDC_BUTTON_LOWER_NEXT:
+						m_lowerClothingIndex = (m_lowerClothingIndex + 1) % m_lowerBodyImageNames.size();
+						string clothingFilename = m_lowerBodyImageNames[m_lowerClothingIndex];
+						m_lowerImage = imread(clothingFilename, IMREAD_UNCHANGED);
+						m_lowerImage.convertTo(m_lowerImage, CV_32F, 1.0/255.0f);
+						m_lowerPoints = readClothingPoints(clothingFilename + ".txt");
+						if(clothingFileName.find("shorts") != string::npos){
+							m_lowerClothingType = ClothingType_Shorts;
+						} else if(clothingFileName.find("pants") != string::npos){
+							m_lowerClothingType = ClothingType_Pants;
+						}
 						break;
 				}
 			}

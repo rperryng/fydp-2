@@ -80,10 +80,15 @@ private:
 	bool					m_ranOnceAlready = false;
 	char 					filepath[255];
 
-	vector<Point>			m_shirtPoints;
-	vector<Point>			m_shortsPoints;
-	vector<Point>			m_sweaterPoints;
-	vector<Point>			m_pantsPoints;
+	int						m_upperClothingIndex = 0;
+	int 					m_lowerClothingIndex = 0;
+	vector<cv::String> 		m_upperBodyImageNames;
+	vector<cv::String> 		m_lowerBodyImageNames;
+	ClothingType 			m_upperClothingType;
+	ClothingType 			m_lowerClothingType;
+
+	vector<Point>			m_upperPoints;
+	vector<Point>			m_lowerPoints;
 	vector<Point>			m_fullBodyPoints;
 
 	UINT16*					m_depthBuffer;
@@ -91,10 +96,8 @@ private:
 	Joint					m_joints[JointType_Count];
 
 	Mat						m_personImage;
-	Mat						m_shirtImage;
-	Mat						m_shortsImage;
-	Mat						m_sweaterImage;
-	Mat						m_pantsImage;
+	Mat						m_upperImage;
+	Mat						m_lowerImage;
 	Mat						m_fullBodyClothingImage;
 	Mat						m_clothingPreview;
 
