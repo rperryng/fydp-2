@@ -289,15 +289,9 @@ void CColorBasics::Update()
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
 		ClothingMapper clothingMapper(&m_personImage);
-<<<<<<< HEAD
 		clothingMapper.ApplyClothing(m_lowerClothingType, m_lowerImage, m_lowerPoints, lowerBodyPoints, false);
 		clothingMapper.ApplyClothing(m_upperClothingType, m_upperImage, m_upperPoints, upperBodyPoints, false);
-=======
-		 clothingMapper.ApplyClothing(ClothingType_Shorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, false);
-		// clothingMapper.ApplyClothing(ClothingType_Pants, m_pantsImage, m_pantsPoints, pantsBodyTracePoints, false);
-		 clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, false);
-		// clothingMapper.ApplyClothing(ClothingType_Sweater, m_sweaterImage, m_sweaterPoints, sweaterBodyTracePoints, false);
->>>>>>> 9609d07aaf7ceae714b355d95ab55482da6b9ad3
+
 		//clothingMapper.ApplyClothing(ClothingType_FullBody, m_fullBodyClothingImage, m_fullBodyPoints, fullBodyTracePoints, false);
 		//for (int i = 0; i < JointType_Count; i++) {
 		//	Joint joint = m_joints[i];
@@ -665,6 +659,7 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
         case WM_COMMAND:
             // Button clicked
 			if(BN_CLICKED == HIWORD(wParam)){
+				string clothingFilename;
 				switch (LOWORD(wParam)){
 					// If it was for the screenshot control and a button clicked event, save a screenshot next frame
 					case IDC_BUTTON_SCREENSHOT:
@@ -675,27 +670,28 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						if(m_upperClothingIndex < 0){
 							m_upperClothingIndex += m_upperBodyImageNames.size();
 						}
-						string clothingFilename = m_upperBodyImageNames[m_upperClothingIndex];
+						clothingFilename = m_upperBodyImageNames[m_upperClothingIndex];
 						m_upperImage = imread(clothingFilename, IMREAD_UNCHANGED);
 						resize(m_upperImage, m_upperClothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
 						m_upperImage.convertTo(m_upperImage, CV_32F, 1.0/255.0f);
 						m_upperPoints = readClothingPoints(clothingFilename + ".txt");
-						if(clothingFileName.find("tshirt") != string::npos){
+
+						if(clothingFilename.find("tshirt") != string::npos){
 							m_upperClothingType = ClothingType_Shirt;
-						} else if(clothingFileName.find("sweater") != string::npos){
+						} else if(clothingFilename.find("sweater") != string::npos){
 							m_upperClothingType = ClothingType_Sweater;
 						}
 						break;
 					case IDC_BUTTON_UPPER_NEXT:
 						m_upperClothingIndex = (m_upperClothingIndex + 1) % m_upperBodyImageNames.size();
-						string clothingFilename = m_upperBodyImageNames[m_upperClothingIndex];
+						clothingFilename = m_upperBodyImageNames[m_upperClothingIndex];
 						m_upperImage = imread(clothingFilename, IMREAD_UNCHANGED);
 						resize(m_upperImage, m_upperClothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
 						m_upperImage.convertTo(m_upperImage, CV_32F, 1.0/255.0f);
 						m_upperPoints = readClothingPoints(clothingFilename + ".txt");
-						if(clothingFileName.find("tshirt") != string::npos){
+						if(clothingFilename.find("tshirt") != string::npos){
 							m_upperClothingType = ClothingType_Shirt;
-						} else if(clothingFileName.find("sweater") != string::npos){
+						} else if(clothingFilename.find("sweater") != string::npos){
 							m_upperClothingType = ClothingType_Sweater;
 						}
 						break;
@@ -704,27 +700,27 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						if(m_lowerClothingIndex < 0){
 							m_lowerClothingIndex += m_lowerBodyImageNames.size();
 						}
-						string clothingFilename = m_lowerBodyImageNames[m_lowerClothingIndex];
+						clothingFilename = m_lowerBodyImageNames[m_lowerClothingIndex];
 						m_lowerImage = imread(clothingFilename, IMREAD_UNCHANGED);
 						resize(m_lowerImage, m_lowerClothingPreview, Size(400, (400 * m_lowerImage.size().height) / m_lowerImage.size().width));
 						m_lowerImage.convertTo(m_lowerImage, CV_32F, 1.0/255.0f);
 						m_lowerPoints = readClothingPoints(clothingFilename + ".txt");
-						if(clothingFileName.find("shorts") != string::npos){
+						if(clothingFilename.find("shorts") != string::npos){
 							m_lowerClothingType = ClothingType_Shorts;
-						} else if(clothingFileName.find("pants") != string::npos){
+						} else if(clothingFilename.find("pants") != string::npos){
 							m_lowerClothingType = ClothingType_Pants;
 						}
 						break;
 					case IDC_BUTTON_LOWER_NEXT:
 						m_lowerClothingIndex = (m_lowerClothingIndex + 1) % m_lowerBodyImageNames.size();
-						string clothingFilename = m_lowerBodyImageNames[m_lowerClothingIndex];
+						clothingFilename = m_lowerBodyImageNames[m_lowerClothingIndex];
 						m_lowerImage = imread(clothingFilename, IMREAD_UNCHANGED);
 						resize(m_lowerImage, m_lowerClothingPreview, Size(400, (400 * m_lowerImage.size().height) / m_lowerImage.size().width));
 						m_lowerImage.convertTo(m_lowerImage, CV_32F, 1.0/255.0f);
 						m_lowerPoints = readClothingPoints(clothingFilename + ".txt");
-						if(clothingFileName.find("shorts") != string::npos){
+						if(clothingFilename.find("shorts") != string::npos){
 							m_lowerClothingType = ClothingType_Shorts;
-						} else if(clothingFileName.find("pants") != string::npos){
+						} else if(clothingFilename.find("pants") != string::npos){
 							m_lowerClothingType = ClothingType_Pants;
 						}
 						break;
@@ -855,12 +851,21 @@ void CColorBasics::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int n
     if (pBuffer && (nWidth == cColorWidth) && (nHeight == cColorHeight))
     {
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, pBuffer);
-		m_upperClothingPreview.copyTo(m_personImage(Rect(0, 0, m_upperClothingPreview.size().width, m_upperClothingPreview.size().height)));
+		m_upperClothingPreview.copyTo(
+			m_personImage(
+				Rect(
+					0, 
+					0, 
+					m_upperClothingPreview.size().width, 
+					m_upperClothingPreview.size().height
+				)
+			)
+		);
 		m_lowerClothingPreview.copyTo(
 			m_personImage(
 				Rect(
+					cColorWidth - m_lowerClothingPreview.size().width,
 					0,
-					m_upperClothingPreview.size().height,
 					m_lowerClothingPreview.size().width,
 					m_lowerClothingPreview.size().height
 				)
