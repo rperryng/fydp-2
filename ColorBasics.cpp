@@ -623,9 +623,9 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 			m_pantsImage.convertTo(m_pantsImage, CV_32F, 1.0 / 255.0f);
 			m_pantsPoints = readClothingPoints("./resources/lower/navy_pants.png.txt");
 
-			m_fullBodyClothingImage = imread("./resources/ironman.png", IMREAD_UNCHANGED);
+			m_fullBodyClothingImage = imread("./resources/full/deadpool.png", IMREAD_UNCHANGED);
 			m_fullBodyClothingImage.convertTo(m_fullBodyClothingImage, CV_32F, 1.0 / 255.0f);
-			m_fullBodyPoints = readClothingPoints("./resources/ironman.png.txt");
+			m_fullBodyPoints = readClothingPoints("./resources/full/deadpool.png.txt");
 
             // Bind application window handle
             m_hWnd = hWnd;
