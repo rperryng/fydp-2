@@ -621,22 +621,22 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
     {
         case WM_INITDIALOG:
         {
-			m_shirtImage = imread("./resources/superman_tshirt_transparent.png", IMREAD_UNCHANGED);
+			m_shirtImage = imread("./resources/upper/superman_tshirt.png", IMREAD_UNCHANGED);
 			resize(m_shirtImage, m_clothingPreview, Size(400, (400 * m_shirtImage.size().height) / m_shirtImage.size().width));
 			m_shirtImage.convertTo(m_shirtImage, CV_32F, 1.0/255.0f);
-			m_shirtPoints = readClothingPoints("./resources/superman_tshirt_transparent.png.txt");
+			m_shirtPoints = readClothingPoints("./resources/upper/superman_tshirt.png.txt");
 
-			m_shortsImage = imread("./resources/red_shorts_transparent.png", IMREAD_UNCHANGED);
+			m_shortsImage = imread("./resources/lower/red_shorts.png", IMREAD_UNCHANGED);
 			m_shortsImage.convertTo(m_shortsImage, CV_32F, 1.0 / 255.0f);
-			m_shortsPoints = readClothingPoints("./resources/red_shorts.jpg.txt");
+			m_shortsPoints = readClothingPoints("./resources/lower/red_shorts.png.txt");
 
-			m_sweaterImage = imread("./resources/grey_sweater.png", IMREAD_UNCHANGED);
+			m_sweaterImage = imread("./resources/upper/grey_sweater.png", IMREAD_UNCHANGED);
 			m_sweaterImage.convertTo(m_sweaterImage, CV_32F, 1.0 / 255.0f);
-			m_sweaterPoints = readClothingPoints("./resources/grey_sweater.png.txt");
+			m_sweaterPoints = readClothingPoints("./resources/upper/grey_sweater.png.txt");
 
-			m_pantsImage = imread("./resources/navy_pants.png", IMREAD_UNCHANGED);
+			m_pantsImage = imread("./resources/lower/navy_pants.png", IMREAD_UNCHANGED);
 			m_pantsImage.convertTo(m_pantsImage, CV_32F, 1.0 / 255.0f);
-			m_pantsPoints = readClothingPoints("./resources/navy_pants.png.txt");
+			m_pantsPoints = readClothingPoints("./resources/lower/navy_pants.png.txt");
 
             // Bind application window handle
             m_hWnd = hWnd;
