@@ -237,6 +237,7 @@ void CColorBasics::Update()
 	{
 		if (!loadBinaryData) {
 			if (!UpdateBody()) {
+				SetStatusMessage("Where da bonez at", 5000, true);
 				Output("Where da bonez at");
 				return;
 			}
@@ -251,9 +252,11 @@ void CColorBasics::Update()
 		m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[0].Position, &dspHipJoint);
 		if (isinf(dspHipJoint.X) || isinf(dspHipJoint.Y)) {
 			Output("Kinect not wok??");
+			SetStatusMessage("Kinect not wok??", 5000, true);
 			return;
 		}
 
+		// Cutoff for polarization
 		DepthSpacePoint dspLowestAnkle = { 0 };
 		if (m_joints[JointType_AnkleLeft].Position.Y < m_joints[JointType_AnkleRight].Position.Y) {
 			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleLeft].Position, &dspLowestAnkle);
@@ -262,9 +265,11 @@ void CColorBasics::Update()
 			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleRight].Position, &dspLowestAnkle);
 		}
 
+		// Edge Detection
 		ComponentPolarizer componentPolarizer(m_depthBuffer, cDepthHeight, cDepthWidth);
 		componentPolarizer.Polarize(dspHipJoint.X, dspHipJoint.Y, (int) dspLowestAnkle.Y + 2);
 
+		// Landmark Recognition
 		BodyLandmarkRecognizer bodyLandmarkRecognizer(
 			m_depthBuffer,
 			cDepthHeight,
@@ -276,6 +281,7 @@ void CColorBasics::Update()
 			m_pCoordinateMapper
 		);
 		bodyLandmarkRecognizer.buildTracePoints();
+
 		// vector<Point> upperBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shirt);
 		// vector<Point> lowerBodyPoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Shorts);
 		// vector<Point> pantsBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_Pants);
@@ -289,7 +295,7 @@ void CColorBasics::Update()
 		// clothingMapper.ApplyClothing(ClothingType_Pants, m_pantsImage, m_pantsPoints, pantsBodyTracePoints, false);
 		// clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, true);
 		// clothingMapper.ApplyClothing(ClothingType_Sweater, m_sweaterImage, m_sweaterPoints, sweaterBodyTracePoints, false);
-		clothingMapper.ApplyClothing(ClothingType_FullBody, m_fullBodyImage, m_fullBodyPoints, fullBodyTracePoints, false);
+		clothingMapper.ApplyClothing(ClothingType_FullBody, m_fullBodyClothingImage, m_fullBodyPoints, fullBodyTracePoints, false);
 		//for (int i = 0; i < JointType_Count; i++) {
 		//	Joint joint = m_joints[i];
 		//	ColorSpacePoint csp = { 0 };
@@ -303,10 +309,12 @@ void CColorBasics::Update()
 		waitKey(0);
 		destroyWindow("Result");
 
-		ColorSpacePoint csp = { 0 };
-		m_pCoordinateMapper->MapCameraPointToColorSpace(m_joints[JointType_SpineBase].Position, &csp);
-		circle(m_personImage, Point(csp.X, csp.Y), 3, RED_16U);
+		// Write to file
+		time_t timestamp = time(nullptr);
+		sprintf(filepath, "%s%d%s", OUTPUT_DIRECTORY.c_str(), (int)timestamp, FILE_EXTENSION.c_str());
+		WriteLayeredPng(filepath, m_personImage);
 
+		// Update status message
 		WCHAR szStatusMessage[64 + MAX_PATH];
 		StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Saved files", NULL);
 		SetStatusMessage(szStatusMessage, 5000, true);
@@ -460,30 +468,6 @@ void CColorBasics::UpdateDepth()
 			}
         }
 
-        // if (SUCCEEDED(hr))
-        // {
-		// 	string OUTPUT_DIRECTORY = "C:\\Users\\Ryan\\~\\code\\fydp-kinect-app\\out\\depth";
-		// 	string FILE_EXTENSION = "-bad.pgm";
-		// 	time_t timestamp = time(nullptr);
-		// 	char* filepath = new char[OUTPUT_DIRECTORY.length() + FILE_EXTENSION.length() + 32];
-		// 	sprintf(filepath, "%s-%d%s", OUTPUT_DIRECTORY.c_str(), (int)timestamp, FILE_EXTENSION.c_str());
-		// 	ofstream myfile(filepath, ios::out | ios::binary);
-		//
-		// 	char* header = new char[200];
-		// 	sprintf(header, "P5 %d %d %d\n", nWidth, nHeight, nDepthMaxDistance);
-		// 	myfile << header;
-		//
-		// 	// nBufferSize contains length of array rather than SIZE of array in bytes
-		// 	for (int i = 0; i < nBufferSize; i++) {
-		// 		myfile.write((char *) &m_depthBuffer[i], sizeof(UINT16));
-		// 	}
-		//
-		// 	myfile.close();
-		//
-		// 	// DONT DEAD OPEN INSIDE
-		// 	// ProcessDepth(nTime, pBuffer, nWidth, nHeight, nDepthMinReliableDistance, nDepthMaxDistance);
-        // }
-
         SafeRelease(pFrameDescription);
     }
 
@@ -627,9 +611,9 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 			m_shirtImage.convertTo(m_shirtImage, CV_32F, 1.0/255.0f);
 			m_shirtPoints = readClothingPoints("./resources/upper/superman_tshirt.png.txt");
 
-			m_shortsImage = imread("./resources/lower/red_shorts.png", IMREAD_UNCHANGED);
+			m_shortsImage = imread("./resources/lower/blue_shorts.png", IMREAD_UNCHANGED);
 			m_shortsImage.convertTo(m_shortsImage, CV_32F, 1.0 / 255.0f);
-			m_shortsPoints = readClothingPoints("./resources/lower/red_shorts.png.txt");
+			m_shortsPoints = readClothingPoints("./resources/lower/blue_shorts.png.txt");
 
 			m_sweaterImage = imread("./resources/upper/grey_sweater.png", IMREAD_UNCHANGED);
 			m_sweaterImage.convertTo(m_sweaterImage, CV_32F, 1.0 / 255.0f);
@@ -639,8 +623,8 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 			m_pantsImage.convertTo(m_pantsImage, CV_32F, 1.0 / 255.0f);
 			m_pantsPoints = readClothingPoints("./resources/lower/navy_pants.png.txt");
 
-			m_fullBodyImage = imread("./resources/ironman.png", IMREAD_UNCHANGED);
-			m_fullBodyImage.convertTo(m_fullBodyImage, CV_32F, 1.0 / 255.0f);
+			m_fullBodyClothingImage = imread("./resources/ironman.png", IMREAD_UNCHANGED);
+			m_fullBodyClothingImage.convertTo(m_fullBodyClothingImage, CV_32F, 1.0 / 255.0f);
 			m_fullBodyPoints = readClothingPoints("./resources/ironman.png.txt");
 
             // Bind application window handle

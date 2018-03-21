@@ -68,6 +68,8 @@ public:
 	int                     Run(HINSTANCE hInstance, int nCmdShow);
 
 private:
+	string 					OUTPUT_DIRECTORY = "./output/";
+	string 					FILE_EXTENSION = ".png";
 	HWND                    m_hWnd;
 	INT64                   m_nStartTime;
 	INT64                   m_nLastCounter;
@@ -76,6 +78,7 @@ private:
 	DWORD                   m_nFramesSinceUpdate;
 	bool                    m_bSaveScreenshot;
 	bool					m_ranOnceAlready = false;
+	char 					filepath = char[OUTPUT_DIRECTORY.length() + FILE_EXTENSION.length() + 32];
 
 	vector<Point>			m_shirtPoints;
 	vector<Point>			m_shortsPoints;
@@ -87,13 +90,12 @@ private:
 	RGBQUAD*				m_colorBuffer;
 	Joint					m_joints[JointType_Count];
 
-	//skeletalBodyPoints_t	m_skeletalPoints;
 	Mat						m_personImage;
 	Mat						m_shirtImage;
 	Mat						m_shortsImage;
 	Mat						m_sweaterImage;
 	Mat						m_pantsImage;
-	Mat						m_fullBodyImage;
+	Mat						m_fullBodyClothingImage;
 	Mat						m_clothingPreview;
 
 	// Current Kinect
