@@ -161,19 +161,19 @@ Point BodyLandmarkRecognizer::GetOffsetForJoint(Joint joint) {
 
 Point BodyLandmarkRecognizer::findBoundary(Point start, bool traverseRight, float slope) {
 	if (traverseRight) {
-		for (int x = start.x; x < m_depthBufferWidth; x++) {
-			int y = start.y + (slope * (x - start.x));
-
-			if (m_matDepthRaw.at<USHORT>(y, x) == 0) {
-				return Point(x, y);
+		for (float x = (float)start.x; x < (float)m_depthBufferWidth; x+=0.5 ) { 
+			int y = start.y + (slope * (x - (float)start.x));
+			
+			if (m_matDepthRaw.at<USHORT>(y, (USHORT)x) == 0) {
+				return Point((int)x, y);
 			}
 		}
 	} else {
-		for (int x = start.x; x >= 0; x--) {
+		for (float x = start.x; x >= 0; x-=0.5) {
 			int y = start.y + (slope * (x - start.x));
 
-			if (m_matDepthRaw.at<USHORT>(y, x) == 0) {
-				return Point(x, y);
+			if (m_matDepthRaw.at<USHORT>(y, (USHORT)x) == 0) {
+				return Point((int)x, y);
 			}
 		}
 	}
@@ -394,13 +394,13 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 		circle(m_matDepth, m_depthPoints[i], 5, BLUE_16U, FILLED, LINE_8);
 	}
 
-	//namedWindow("matDepth", WINDOW_NORMAL);
-	//namedWindow("matColor", WINDOW_NORMAL);
-	//imshow("matDepth", m_matDepth);
-	//imshow("matColor", m_matColor);
-	////waitKey(0);
-	//destroyWindow("matDepth");
-	//destroyWindow("matColor");
+	namedWindow("matDepth", WINDOW_NORMAL);
+	namedWindow("matColor", WINDOW_NORMAL);
+	imshow("matDepth", m_matDepth);
+	imshow("matColor", m_matColor);
+	waitKey(0);
+	destroyWindow("matDepth");
+	destroyWindow("matColor");
 
 	return m_depthPoints;
 }

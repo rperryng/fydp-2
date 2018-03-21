@@ -243,8 +243,9 @@ bool CColorBasics::sanityCheck() {
 	ColorSpacePoint csp = { 0 };
 	for (int i = 0; i < num_important_joints; i++) {
 		m_pCoordinateMapper->MapCameraPointToColorSpace(m_joints[(JointType)i].Position, &csp);
-		if (csp.X < 0 || csp.Y < 0 || csp.X > cDepthWidth || csp.Y > cDepthHeight) {
+		if (csp.X < 0 || csp.Y < 0 || csp.X > cColorWidth || csp.Y > cDepthHeight) {
 			SetStatusMessage(L"Joints fall outside color space", 5000, true);
+			m_bSaveScreenshot = false;
 			return false;
 		}
 	}
