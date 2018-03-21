@@ -78,7 +78,7 @@ private:
 	DWORD                   m_nFramesSinceUpdate;
 	bool                    m_bSaveScreenshot;
 	bool					m_ranOnceAlready = false;
-	char 					filepath = char[OUTPUT_DIRECTORY.length() + FILE_EXTENSION.length() + 32];
+	char 					filepath[255];
 
 	vector<Point>			m_shirtPoints;
 	vector<Point>			m_shortsPoints;
