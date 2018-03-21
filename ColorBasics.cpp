@@ -289,8 +289,15 @@ void CColorBasics::Update()
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
 		ClothingMapper clothingMapper(&m_personImage);
+<<<<<<< HEAD
 		clothingMapper.ApplyClothing(m_lowerClothingType, m_lowerImage, m_lowerPoints, lowerBodyPoints, false);
 		clothingMapper.ApplyClothing(m_upperClothingType, m_upperImage, m_upperPoints, upperBodyPoints, false);
+=======
+		 clothingMapper.ApplyClothing(ClothingType_Shorts, m_shortsImage, m_shortsPoints, lowerBodyPoints, false);
+		// clothingMapper.ApplyClothing(ClothingType_Pants, m_pantsImage, m_pantsPoints, pantsBodyTracePoints, false);
+		 clothingMapper.ApplyClothing(ClothingType_Shirt, m_shirtImage, m_shirtPoints, upperBodyPoints, false);
+		// clothingMapper.ApplyClothing(ClothingType_Sweater, m_sweaterImage, m_sweaterPoints, sweaterBodyTracePoints, false);
+>>>>>>> 9609d07aaf7ceae714b355d95ab55482da6b9ad3
 		//clothingMapper.ApplyClothing(ClothingType_FullBody, m_fullBodyClothingImage, m_fullBodyPoints, fullBodyTracePoints, false);
 		//for (int i = 0; i < JointType_Count; i++) {
 		//	Joint joint = m_joints[i];
@@ -305,10 +312,15 @@ void CColorBasics::Update()
 		waitKey(0);
 		destroyWindow("Result");
 
+		// Crop image
+		ColorSpacePoint csp = { 0 };
+		m_pCoordinateMapper->MapCameraPointToColorSpace(m_joints[JointType_SpineBase].Position, &csp);
+		Mat crop = m_personImage(Rect(csp.X - 360, 0, 720, 1080));
+
 		// Write to file
 		time_t timestamp = time(nullptr);
 		sprintf(filepath, "%s%d%s", OUTPUT_DIRECTORY.c_str(), (int)timestamp, FILE_EXTENSION.c_str());
-		WriteLayeredPng(filepath, m_personImage);
+		WriteLayeredPng(filepath, crop);
 
 		// Update status message
 		WCHAR szStatusMessage[64 + MAX_PATH];
