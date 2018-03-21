@@ -68,7 +68,7 @@ public:
 	int                     Run(HINSTANCE hInstance, int nCmdShow);
 
 private:
-	string 					OUTPUT_DIRECTORY = "./output/";
+	string 					OUTPUT_DIRECTORY = "D:\\Google Drive\\FYDP\\Presentation Photos\\";
 	string 					FILE_EXTENSION = ".png";
 	HWND                    m_hWnd;
 	INT64                   m_nStartTime;
