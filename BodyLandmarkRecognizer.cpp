@@ -418,7 +418,7 @@ vector<Point> BodyLandmarkRecognizer::returnPointsFor(ClothingType clothingType)
 	case ClothingType_Pants:
 		return filterPoints(cWhiteList_Pants, cNumTracePointsPants);
 
-	case ClothingType_Pants:
+	case ClothingType_FullBody:
 		return filterPoints(cWhiteList_FullBody, cNumTracePointsFullBody);
 
 	default:
