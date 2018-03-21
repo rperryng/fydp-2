@@ -53,6 +53,7 @@
 #endif
 
 typedef enum _ClothingType {
+	ClothingType_NOT_SET,
 	ClothingType_Shirt,
 	ClothingType_Shorts,
 	ClothingType_Sweater,

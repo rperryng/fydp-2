@@ -84,8 +84,9 @@ private:
 	int 					m_lowerClothingIndex = 0;
 	vector<cv::String> 		m_upperBodyImageNames;
 	vector<cv::String> 		m_lowerBodyImageNames;
-	ClothingType 			m_upperClothingType;
-	ClothingType 			m_lowerClothingType;
+	vector<cv::String>		m_fullBodyImageNames;
+	ClothingType 			m_upperClothingType = ClothingType_NOT_SET;
+	ClothingType 			m_lowerClothingType = ClothingType_NOT_SET;
 
 	vector<Point>			m_upperPoints;
 	vector<Point>			m_lowerPoints;

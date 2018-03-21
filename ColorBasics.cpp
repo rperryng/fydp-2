@@ -243,7 +243,8 @@ bool CColorBasics::sanityCheck() {
 	ColorSpacePoint csp = { 0 };
 	for (int i = 0; i < num_important_joints; i++) {
 		m_pCoordinateMapper->MapCameraPointToColorSpace(m_joints[(JointType)i].Position, &csp);
-		if (csp.X < 0 || csp.Y < 0 || csp.X > cColorWidth || csp.Y > cDepthHeight) {
+		// THE 30s are to account for offsets we're not calculating here
+		if (csp.X < 30 || csp.Y < 30 || csp.X > cColorWidth - 30 || csp.Y > cColorHeight) {
 			SetStatusMessage(L"Joints fall outside color space", 5000, true);
 			m_bSaveScreenshot = false;
 			return false;
@@ -294,7 +295,7 @@ void CColorBasics::tryUpdate() {
 			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleRight].Position, &dspLowestAnkle);
 		}
 
-		if (sanityCheck()) {
+		if (sanityCheck() == false) {
 			m_bSaveScreenshot = false;
 			return;
 		}
@@ -323,15 +324,18 @@ void CColorBasics::tryUpdate() {
 		);
 		bodyLandmarkRecognizer.buildTracePoints();
 
-		vector<Point> upperBodyPoints = bodyLandmarkRecognizer.returnPointsFor(m_upperClothingType);
-		vector<Point> lowerBodyPoints = bodyLandmarkRecognizer.returnPointsFor(m_lowerClothingType);
-		vector<Point> fullBodyTracePoints = bodyLandmarkRecognizer.returnPointsFor(ClothingType_FullBody);
+		vector<Point> upperBodyPoints = (m_upperClothingType == ClothingType_NOT_SET) ? vector<Point>() : bodyLandmarkRecognizer.returnPointsFor(m_upperClothingType);
+		vector<Point> lowerBodyPoints = (m_lowerClothingType == ClothingType_NOT_SET) ? vector<Point>() : bodyLandmarkRecognizer.returnPointsFor(m_lowerClothingType);
 
 		m_personImage = Mat(cColorHeight, cColorWidth, CV_8UC4, m_colorBuffer);
 		m_personImage.convertTo(m_personImage, CV_32FC4, 1.0 / 255.0f);
 		ClothingMapper clothingMapper(&m_personImage);
-		clothingMapper.ApplyClothing(m_lowerClothingType, m_lowerImage, m_lowerPoints, lowerBodyPoints, false);
-		clothingMapper.ApplyClothing(m_upperClothingType, m_upperImage, m_upperPoints, upperBodyPoints, false);
+		if (m_upperClothingType != ClothingType_FullBody && m_lowerClothingType != ClothingType_NOT_SET) {
+			clothingMapper.ApplyClothing(m_lowerClothingType, m_lowerImage, m_lowerPoints, lowerBodyPoints, false);
+		}
+		if (m_upperClothingType != ClothingType_NOT_SET) {
+			clothingMapper.ApplyClothing(m_upperClothingType, m_upperImage, m_upperPoints, upperBodyPoints, false);
+		}
 
 		//clothingMapper.ApplyClothing(ClothingType_FullBody, m_fullBodyClothingImage, m_fullBodyPoints, fullBodyTracePoints, false);
 		//for (int i = 0; i < JointType_Count; i++) {
@@ -374,13 +378,13 @@ void CColorBasics::tryUpdate() {
 /// </summary>
 void CColorBasics::Update()
 {
-	try {
+	//try {
 		tryUpdate();
-	}
-	catch (...) {
-		SetStatusMessage(L"Something went wrong. Please try again.", 5000, true);
-		// Nice try, kiddo
-	}
+	//}
+	//catch (...) {
+	//	SetStatusMessage(L"Something went wrong. Please try again.", 5000, true);
+	//	// Nice try, kiddo
+	//}
 
 	m_bSaveScreenshot = false;
 }
@@ -670,6 +674,10 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
         {
 			glob("./resources/upper/*.png", m_upperBodyImageNames, false);
 			glob("./resources/lower/*.png", m_lowerBodyImageNames, false);
+			glob("./resources/full/*.png", m_fullBodyImageNames, false);
+			for (auto filename : m_fullBodyImageNames) {
+				m_upperBodyImageNames.push_back(filename);
+			}
 
 			m_upperImage = imread("./resources/upper/superman_tshirt.png", IMREAD_UNCHANGED);
 			resize(m_upperImage, m_upperClothingPreview, Size(400, (400 * m_upperImage.size().height) / m_upperImage.size().width));
@@ -739,13 +747,20 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						clothingFilename = m_upperBodyImageNames[m_upperClothingIndex];
 						m_upperImage = imread(clothingFilename, IMREAD_UNCHANGED);
 						resize(m_upperImage, m_upperClothingPreview, Size(100, 100));
-						m_upperImage.convertTo(m_upperImage, CV_32F, 1.0/255.0f);
+						m_upperImage.convertTo(m_upperImage, CV_32F, 1.0 / 255.0f);
 						m_upperPoints = readClothingPoints(clothingFilename + ".txt");
 
-						if(clothingFilename.find("tshirt") != string::npos){
+						if (clothingFilename.find("tshirt") != string::npos) {
 							m_upperClothingType = ClothingType_Shirt;
-						} else if(clothingFilename.find("sweater") != string::npos){
+						}
+						else if (clothingFilename.find("sweater") != string::npos) {
 							m_upperClothingType = ClothingType_Sweater;
+						}
+						else if (clothingFilename.find("full") != string::npos) {
+							m_upperClothingType = ClothingType_FullBody;
+						}
+						else {
+							m_upperClothingType = ClothingType_NOT_SET;
 						}
 						break;
 					case IDC_BUTTON_UPPER_NEXT:
@@ -753,12 +768,20 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						clothingFilename = m_upperBodyImageNames[m_upperClothingIndex];
 						m_upperImage = imread(clothingFilename, IMREAD_UNCHANGED);
 						resize(m_upperImage, m_upperClothingPreview, Size(100, 100));
-						m_upperImage.convertTo(m_upperImage, CV_32F, 1.0/255.0f);
+						m_upperImage.convertTo(m_upperImage, CV_32F, 1.0 / 255.0f);
 						m_upperPoints = readClothingPoints(clothingFilename + ".txt");
-						if(clothingFilename.find("tshirt") != string::npos){
+
+						if (clothingFilename.find("tshirt") != string::npos) {
 							m_upperClothingType = ClothingType_Shirt;
-						} else if(clothingFilename.find("sweater") != string::npos){
+						}
+						else if (clothingFilename.find("sweater") != string::npos) {
 							m_upperClothingType = ClothingType_Sweater;
+						}
+						else if (clothingFilename.find("full") != string::npos) {
+							m_upperClothingType = ClothingType_FullBody;
+						}
+						else {
+							m_upperClothingType = ClothingType_NOT_SET;
 						}
 						break;
 					case IDC_BUTTON_LOWER_PREV:
@@ -776,6 +799,9 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 						} else if(clothingFilename.find("pants") != string::npos){
 							m_lowerClothingType = ClothingType_Pants;
 						}
+						else {
+							m_lowerClothingType = ClothingType_NOT_SET;
+						}
 						break;
 					case IDC_BUTTON_LOWER_NEXT:
 						m_lowerClothingIndex = (m_lowerClothingIndex + 1) % m_lowerBodyImageNames.size();
@@ -788,6 +814,9 @@ LRESULT CALLBACK CColorBasics::DlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 							m_lowerClothingType = ClothingType_Shorts;
 						} else if(clothingFilename.find("pants") != string::npos){
 							m_lowerClothingType = ClothingType_Pants;
+						}
+						else {
+							m_lowerClothingType = ClothingType_NOT_SET;
 						}
 						break;
 				}
