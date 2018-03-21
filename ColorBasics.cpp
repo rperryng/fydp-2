@@ -244,11 +244,10 @@ bool CColorBasics::sanityCheck() {
 	for (int i = 0; i < num_important_joints; i++) {
 		m_pCoordinateMapper->MapCameraPointToColorSpace(m_joints[(JointType)i].Position, &csp);
 		if (csp.X < 0 || csp.Y < 0 || csp.X > cDepthWidth || csp.Y > cDepthHeight) {
+			SetStatusMessage(L"Joints fall outside color space", 5000, true);
 			return false;
 		}
 	}
-
-	
 
 	return true;
 }
@@ -268,7 +267,7 @@ void CColorBasics::tryUpdate() {
 		if (!loadBinaryData) {
 			if (!UpdateBody()) {
 				SetStatusMessage(L"Where da bonez at", 5000, true);
-				Output("Where da bonez at");
+				m_bSaveScreenshot = false;
 				return;
 			}
 			UpdateDepth();
@@ -294,7 +293,17 @@ void CColorBasics::tryUpdate() {
 			m_pCoordinateMapper->MapCameraPointToDepthSpace(m_joints[JointType_AnkleRight].Position, &dspLowestAnkle);
 		}
 
-		sanityCheck();
+		if (sanityCheck()) {
+			m_bSaveScreenshot = false;
+			return;
+		}
+
+		int cutoffY = dspLowestAnkle.Y + 2;
+		if (cutoffY > cDepthHeight) {
+			SetStatusMessage(L"Ankle does not map to color space", 5000, true);
+			m_bSaveScreenshot = false;
+			return;
+		}
 
 		// Edge Detection
 		ComponentPolarizer componentPolarizer(m_depthBuffer, cDepthHeight, cDepthWidth);
@@ -368,10 +377,11 @@ void CColorBasics::Update()
 		tryUpdate();
 	}
 	catch (...) {
-		m_bSaveScreenshot = false;
 		SetStatusMessage(L"Something went wrong. Please try again.", 5000, true);
 		// Nice try, kiddo
 	}
+
+	m_bSaveScreenshot = false;
 }
 
 void CColorBasics::UpdateColor()

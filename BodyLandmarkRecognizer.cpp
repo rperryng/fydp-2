@@ -394,11 +394,13 @@ vector<Point> BodyLandmarkRecognizer::buildTracePoints() {
 		circle(m_matDepth, m_depthPoints[i], 5, BLUE_16U, FILLED, LINE_8);
 	}
 
-	namedWindow("matDepth", WINDOW_NORMAL);
-	namedWindow("matColor", WINDOW_NORMAL);
-	imshow("matDepth", m_matDepth);
-	imshow("matColor", m_matColor);
-	waitKey(0);
+	//namedWindow("matDepth", WINDOW_NORMAL);
+	//namedWindow("matColor", WINDOW_NORMAL);
+	//imshow("matDepth", m_matDepth);
+	//imshow("matColor", m_matColor);
+	////waitKey(0);
+	//destroyWindow("matDepth");
+	//destroyWindow("matColor");
 
 	return m_depthPoints;
 }
